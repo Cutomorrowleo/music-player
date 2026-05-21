@@ -1096,6 +1096,8 @@
     // ============================================================
     //  AUDIO (本地API + Cookie支持)
     // ============================================================
+    const NCM_REAL_IP = '116.25.146.177';
+
     async function loadAndPlay(track) {
         if (!track || !track.nid) { showToast('无法获取播放地址'); return; }
         showToast('正在加载 ' + track.title + '...');
@@ -1103,10 +1105,10 @@
             // lossless获取完整音频（非30秒试听）
             let url = null;
             for (const level of ['lossless', 'exhigh', 'higher', 'standard']) {
-                const res = await apiFetch(`/song/url/v1?id=${track.nid}&level=${level}`);
+                const res = await apiFetch(`/song/url/v1?id=${track.nid}&level=${level}&realIP=${NCM_REAL_IP}`);
                 const data = await res.json();
                 if (data.data?.[0]?.url) {
-                    url = data.data[0].url;
+                    url = data.data[0].url.replace(/^http:/, 'https:');
                     break;
                 }
             }
@@ -1114,7 +1116,7 @@
                 audio.src = url;
                 audio.play().then(() => setPlaying(true)).catch(() => showToast('播放失败'));
             } else {
-                showToast('无播放源（可尝试VIP登录）');
+                showToast('无播放源（版权/地区限制或需登录）');
             }
         } catch(e) {
             showToast('网络错误');
