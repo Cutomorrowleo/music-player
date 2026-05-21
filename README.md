@@ -16,8 +16,8 @@ Open `http://localhost:3000`.
 This project is prepared for Vercel:
 
 - Static files are served from the repository root.
-- NetEase Cloud Music requests use `/api/*` on deployed hosts.
-- Local development keeps using the existing root API paths through `server.js`.
+- NetEase Cloud Music requests use the same-origin API paths exposed by `server.js`.
+- Local development and Vercel deployment use the same root API paths.
 
 Import the GitHub repository in Vercel and deploy with the default settings.
 
