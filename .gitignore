@@ -1,0 +1,15 @@
+node_modules/
+_backup/
+.claude/
+NeteaseCloudMusicApi/
+server.log
+_original.*
+_search_test.json
+.vercel/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    }
+  ],
+  "functions": {
+    "api/[...ncm].js": {
+      "maxDuration": 10
+    }
+  }
+}

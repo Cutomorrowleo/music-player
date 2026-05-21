@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐播放器 - 网易云音乐</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23f5e6d0'/></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Special+Gothic+Expanded+One&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================================
+           100% 还原 gobzzzmusicplayer2024 视觉 + 网易云集成
+           ============================================================ */
+        :root {
+            --cream: #f5e6d0;
+            --bg: #030303;
+            --panel: #161414;
+            --border: rgba(245,230,208,0.15);
+            --border-light: rgba(245,230,208,0.06);
+            --font-heading: 'Special Gothic Expanded One', sans-serif;
+            --font-serif: 'Abril Fatface', serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            background-color: #030303;
+            background-image:
+                radial-gradient(ellipse at 50% 40%, rgba(12,10,8,0.2) 0%, transparent 70%),
+                linear-gradient(180deg, #030303, #020202);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            color: var(--cream);
+            padding: 3% 10% 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+            flex-direction: column;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== SVG Filters Background Layers ===== */
+        .paper-bg {
+            position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+            z-index: 0; pointer-events: none;
+            filter: url(#paper-texture); opacity: 0.5;
+        }
+        .grain-overlay {
+            position: fixed;
+            top: -20%; right: -20%; bottom: -20%; left: -20%;
+            width: 140%; height: 140%;
+            z-index: 999; pointer-events: none;
+            animation: grain-drift 0.4s steps(3) infinite;
+        }
+        .grain-fine  { filter: url(#grain-fine);   opacity: 0.25; mix-blend-mode: screen; }
+        .grain-coarse { filter: url(#grain-coarse); opacity: 0.08; mix-blend-mode: screen; animation-direction: reverse; animation-duration: 0.3s; }
+        @keyframes grain-drift {
+            0% { transform: translate(0); } 20% { transform: translate(-4%, 3%); }
+            40% { transform: translate(3%, -4%); } 60% { transform: translate(-2%, -3%); }
+            80% { transform: translate(4%, 2%); } 100% { transform: translate(-1%, -1%); }
+        }
+        .vignette-overlay {
+            position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+            z-index: 998; pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+        }
+
+        /* ===== Lava Background ===== */
+        .lava-bg {
+            position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+            z-index: 0; pointer-events: none; overflow: hidden;
+            filter: url(#goo) blur(40px);
+        }
+        .lava-blob {
+            position: absolute;
+            top: 50%; left: 50%;
+            border-radius: 50%;
+            opacity: 0;
+            will-change: transform, opacity;
+            transform: translate(-50%, -50%);
+        }
+
+        /* ===== Typography ===== */
+        h1, h2 { font-family: var(--font-heading); font-style: normal; color: var(--cream); }
+        h1 {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            letter-spacing: 0.05em; opacity: 0.6;
+            margin: 0 0 10px; text-align: center;
+        }
+        #track-title {
+            font-size: clamp(1.6rem, 5vw, 2.8rem);
+            text-align: center; margin: 8px 0 16px; min-height: 3rem;
+        }
+        .drag-hint {
+            display: none; text-align: center;
+            font-family: inherit; font-size: 0.7rem;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            color: rgba(245,230,208,0.35); margin: -4px 0 10px;
+        }
+        .slot-indicator {
+            display: flex; gap: 6px; justify-content: center;
+            margin: 0 0 8px;
+        }
+        .slot-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: rgba(245,230,208,0.15);
+            transition: all 0.4s;
+        }
+        .slot-dot.active { background: var(--cream); box-shadow: 0 0 8px rgba(245,230,208,0.4); }
+        .slot-dot.replacing { background: #f5a623; animation: slotPulse 0.6s ease; }
+        @keyframes slotPulse {
+            0%,100% { transform: scale(1); } 50% { transform: scale(2); background: var(--cream); }
+        }
+
+        /* ===== 3D Icon Cards Carousel ===== */
+        .icon-cards {
+            position: relative;
+            width: 80vw; height: 50vw;
+            max-width: 600px; max-height: 420px;
+            margin: 0 auto; color: #fff;
+            perspective: 1200px; transform-origin: center;
+            cursor: grab;
+        }
+        .icon-cards:active { cursor: grabbing; }
+        .icon-cards__content {
+            position: absolute; width: 100%; height: 100%;
+            transform-style: preserve-3d; transform-origin: center;
+            transition: transform 0.55s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .icon-cards__item {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0; margin: auto;
+            width: 24vw; height: 24vw;
+            max-width: 280px; max-height: 280px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+            -webkit-user-select: none; user-select: none;
+            background-size: cover; background-position: center;
+        }
+        .icon-cards__item img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 10px;
+            pointer-events: none;
+        }
+        .icon-cards__item {
+            transition: transform 0.55s cubic-bezier(0.25, 0.1, 0.25, 1),
+                        box-shadow 0.55s ease;
+        }
+        .icon-cards__item.is-active-card {
+            box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+        }
+        .icon-cards__item.is-active-card.playing {
+            box-shadow: 0 20px 56px rgba(0,0,0,0.55);
+        }
+        .icon-cards__item .card-glow {
+            position: absolute; inset: 0; border-radius: 10px;
+            border: 2px solid transparent;
+            transition: border-color 0.5s;
+            pointer-events: none;
+        }
+        .icon-cards__item.just-replaced .card-glow {
+            border-color: #f5a623;
+            animation: glowFade 1.5s ease forwards;
+        }
+        @keyframes glowFade {
+            0% { border-color: #f5a623; box-shadow: inset 0 0 40px rgba(245,166,35,0.3); }
+            100% { border-color: transparent; box-shadow: none; }
+        }
+
+        /* ===== Buttons Group ===== */
+        .gapgutton {
+            display: flex; align-items: center; justify-content: center;
+            gap: 20px; margin-bottom: 14px;
+        }
+        .btn-player {
+            position: relative; display: flex; align-items: center; justify-content: center;
+            background: transparent; border: 1px solid var(--border);
+            color: var(--cream); cursor: pointer; padding: 0; overflow: hidden; z-index: 1;
+            -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+        }
+        .btn-player svg { position: relative; z-index: 2; transition: color 0.3s; }
+        .btn-fill {
+            position: absolute; width: 250%; height: 250%;
+            background: var(--cream); border-radius: 50%;
+            z-index: 1; pointer-events: none;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.45s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .btn-player:hover .btn-fill { transform: translate(-50%, -50%) scale(0.45); }
+        .btn-player:hover svg { color: #161414; }
+        .btn-player:active .btn-fill { transform: translate(-50%, -50%) scale(0.55); transition: transform 0.15s; }
+        .btn-prev, .btn-next { width: 50px; height: 50px; border-radius: 50%; }
+        .btn-play { width: 60px; height: 60px; border-radius: 50%; border-color: rgba(245,230,208,0.28); }
+
+        /* ===== Sound Wave ===== */
+        .sound-wave {
+            position: fixed; bottom: 24px; left: 24px;
+            display: flex; align-items: flex-end; gap: 2.5px;
+            height: 32px; z-index: 100; opacity: 0;
+            transition: opacity 0.6s ease; pointer-events: none;
+        }
+        .sound-wave.active { opacity: 1; }
+        .sound-wave span {
+            display: block; width: 2.5px;
+            background: rgba(245,230,208,0.35); border-radius: 2px;
+            animation: soundBar 0.8s ease-in-out infinite alternate;
+        }
+        .sound-wave span:nth-child(1){height:6px;animation-delay:0s;animation-duration:.7s}
+        .sound-wave span:nth-child(2){height:14px;animation-delay:.05s;animation-duration:.55s}
+        .sound-wave span:nth-child(3){height:22px;animation-delay:.1s;animation-duration:.65s}
+        .sound-wave span:nth-child(4){height:10px;animation-delay:.15s;animation-duration:.8s}
+        .sound-wave span:nth-child(5){height:28px;animation-delay:.08s;animation-duration:.5s}
+        .sound-wave span:nth-child(6){height:18px;animation-delay:.2s;animation-duration:.72s}
+        .sound-wave span:nth-child(7){height:8px;animation-delay:.03s;animation-duration:.88s}
+        .sound-wave span:nth-child(8){height:24px;animation-delay:.12s;animation-duration:.48s}
+        .sound-wave span:nth-child(9){height:12px;animation-delay:.18s;animation-duration:.62s}
+        .sound-wave span:nth-child(10){height:30px;animation-delay:.06s;animation-duration:.55s}
+        .sound-wave span:nth-child(11){height:16px;animation-delay:.22s;animation-duration:.78s}
+        .sound-wave span:nth-child(12){height:20px;animation-delay:.09s;animation-duration:.52s}
+        .sound-wave span:nth-child(13){height:7px;animation-delay:.16s;animation-duration:.68s}
+        .sound-wave span:nth-child(14){height:26px;animation-delay:.04s;animation-duration:.58s}
+        .sound-wave span:nth-child(15){height:11px;animation-delay:.14s;animation-duration:.75s}
+        @keyframes soundBar { 0% { height: 3px; } 100% { height: 100%; } }
+
+        /* ===== Reactive Toggle ===== */
+        .reactive-toggle {
+            position: fixed; top: 20px; right: 20px;
+            width: 42px; height: 42px; border-radius: 50%;
+            background: rgba(245,230,208,0.04);
+            border: 1px solid rgba(245,230,208,0.08);
+            color: rgba(245,230,208,0.3); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0; z-index: 100;
+            transition: background 0.4s, color 0.4s, border-color 0.4s;
+        }
+        .reactive-toggle:hover { background: rgba(245,230,208,0.08); color: rgba(245,230,208,0.55); border-color: rgba(245,230,208,0.15); }
+        .reactive-toggle.active { background: rgba(245,230,208,0.1); color: var(--cream); border-color: rgba(245,230,208,0.25); }
+        .reactive-toggle.active-soft { background: rgba(245,230,208,0.06); color: rgba(245,230,208,0.6); border-color: rgba(245,230,208,0.18); }
+        .reactive-indicator {
+            position: fixed; top: 20px; right: 72px;
+            font-family: var(--font-heading);
+            font-size: 0.55rem; letter-spacing: 0.18em; text-transform: uppercase;
+            color: var(--cream); background: rgba(245,230,208,0.06);
+            border: 1px solid rgba(245,230,208,0.1); border-radius: 20px;
+            padding: 4px 12px; z-index: 100;
+            opacity: 0; transform: translateY(-8px); pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .reactive-indicator.show { opacity: 1; transform: translateY(0); }
+
+        /* ===== VIP Button & Modal ===== */
+        .vip-btn {
+            position: fixed; top: 20px; right: 100px;
+            width: 42px; height: 42px; border-radius: 50%;
+            background: rgba(245,230,208,0.04);
+            border: 1px solid rgba(245,230,208,0.08);
+            color: rgba(245,230,208,0.3); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0; z-index: 100;
+            transition: background 0.4s, color 0.4s, border-color 0.4s;
+        }
+        .vip-btn:hover { background: rgba(245,230,208,0.08); color: rgba(245,230,208,0.55); border-color: rgba(245,230,208,0.15); }
+        .vip-btn.vip-active { background: rgba(245,166,35,0.15); color: #f5a623; border-color: rgba(245,166,35,0.3); }
+        .vip-indicator {
+            position: fixed; top: 20px; right: 150px;
+            font-family: var(--font-heading); font-size: 0.5rem;
+            letter-spacing: 0.2em; text-transform: uppercase;
+            color: #f5a623; background: rgba(245,166,35,0.1);
+            border: 1px solid rgba(245,166,35,0.2); border-radius: 20px;
+            padding: 3px 10px; z-index: 100;
+            opacity: 0; transform: translateY(-8px); pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .vip-indicator.show { opacity: 1; transform: translateY(0); }
+        .vip-overlay {
+            position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+            background: transparent;
+            -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.35s, visibility 0.35s, backdrop-filter 0.35s;
+        }
+        .vip-overlay.active {
+            opacity: 1; visibility: visible; pointer-events: all;
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            background: rgba(0,0,0,0.45);
+        }
+        .vip-panel {
+            position: relative; background: #161414;
+            border: 1px solid var(--border-light); border-radius: 16px;
+            max-width: 460px; width: 92%; padding: 32px 28px;
+            opacity: 0; transform: translateY(20px) scale(0.97);
+            transition: opacity 0.4s, transform 0.4s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        .vip-overlay.active .vip-panel { opacity: 1; transform: translateY(0) scale(1); }
+        .vip-title { color: var(--cream); font-family: var(--font-heading); font-size: 1.1rem; margin: 0 0 4px; letter-spacing: 0.05em; }
+        .vip-subtitle { font-size: 0.6rem; color: rgba(245,230,208,0.3); font-family: system-ui, sans-serif; letter-spacing: 0.05em; margin: 0 0 16px; }
+        .vip-steps {
+            font-size: 0.7rem; color: rgba(245,230,208,0.5); margin: 0 0 16px; padding: 0;
+            list-style: decimal; font-family: system-ui, sans-serif; line-height: 1.8;
+        }
+        .vip-steps kbd {
+            background: rgba(245,230,208,0.08); border: 1px solid rgba(245,230,208,0.15);
+            border-radius: 4px; padding: 1px 6px; font-size: 0.65rem; font-family: monospace;
+        }
+        .cookie-input {
+            width: 100%; background: rgba(245,230,208,0.04);
+            border: 1px solid rgba(245,230,208,0.12); border-radius: 8px;
+            padding: 10px 14px; color: var(--cream); font-family: monospace;
+            font-size: 0.7rem; outline: none; resize: vertical;
+            transition: border-color 0.3s; margin-bottom: 16px;
+        }
+        .cookie-input:focus { border-color: rgba(245,230,208,0.35); }
+        .vip-actions { display: flex; gap: 8px; }
+        .cookie-save-btn {
+            flex: 1; padding: 10px 18px; border-radius: 30px;
+            background: #f5a623; color: #161414; border: none;
+            font-family: var(--font-heading); font-size: 0.65rem;
+            letter-spacing: 0.1em; cursor: pointer; transition: opacity 0.2s;
+        }
+        .cookie-save-btn:hover { opacity: 0.85; }
+        .cookie-clear-btn {
+            padding: 10px 18px; border-radius: 30px;
+            background: transparent; border: 1px solid var(--border);
+            color: var(--cream); font-family: var(--font-heading);
+            font-size: 0.6rem; letter-spacing: 0.1em; cursor: pointer; transition: all 0.3s;
+        }
+        .cookie-clear-btn:hover { border-color: #f77e7e; color: #f77e7e; }
+        .vip-note { font-size: 0.55rem; color: rgba(245,230,208,0.2); text-align: center; margin-top: 14px; }
+
+        /* ===== Add Track Floating Button ===== */
+        .add-track-btn {
+            position: fixed; bottom: 24px; right: 24px;
+            width: 48px; height: 48px; border-radius: 50%;
+            background: rgba(245,230,208,0.08);
+            border: 1px solid var(--border); color: var(--cream);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 100; transition: background 0.3s, border-color 0.3s, transform 0.2s;
+        }
+        .add-track-btn:hover { background: rgba(245,230,208,0.15); border-color: rgba(245,230,208,0.35); transform: scale(1.08); }
+
+        /* ===== Popup Overlay ===== */
+        .popup-overlay {
+            position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+            background: transparent;
+            -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.35s, visibility 0.35s, backdrop-filter 0.35s;
+        }
+        .popup-overlay.active {
+            opacity: 1; visibility: visible; pointer-events: all;
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            background: rgba(0,0,0,0.45);
+        }
+        .popup-panel {
+            display: flex; position: relative;
+            background: #161414; border: 1px solid var(--border-light);
+            border-radius: 16px; max-width: 680px; width: 92%;
+            max-height: 85vh; overflow: hidden;
+            opacity: 0; transform: translateY(20px) scale(0.97);
+            transition: opacity 0.4s, transform 0.4s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        .popup-overlay.active .popup-panel { opacity: 1; transform: translateY(0) scale(1); }
+        .popup-visual { position: relative; flex: 0 0 50%; min-height: 340px; overflow: hidden; }
+        .popup-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .popup-img-grain {
+            position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+            background: repeating-conic-gradient(rgba(255,255,255,0.01) 0% 25%, transparent 0% 50%) 0 0 / 3px 3px;
+            pointer-events: none;
+        }
+        .popup-content {
+            position: relative; flex: 1; padding: 36px 30px;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .popup-close {
+            position: absolute; top: 14px; right: 14px;
+            background: rgba(0,0,0,0.5); border: 1px solid rgba(245,230,208,0.2);
+            color: var(--cream); cursor: pointer;
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0; transition: border-color 0.3s, background 0.3s;
+            z-index: 10; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+        }
+        .popup-close:hover { border-color: var(--cream); background: rgba(0,0,0,0.7); }
+        .popup-label {
+            font-family: var(--font-heading); font-size: 0.6rem;
+            letter-spacing: 0.25em; text-transform: uppercase;
+            color: rgba(245,230,208,0.35); margin-bottom: 6px;
+        }
+        .popup-artist { color: var(--cream); font-family: var(--font-heading); font-size: 1.6rem; margin: 0 0 12px; line-height: 1.1; }
+        .popup-divider { width: 40px; height: 1px; background: rgba(245,230,208,0.12); margin-bottom: 14px; }
+        .popup-album { color: var(--cream); font-family: var(--font-serif); font-size: 0.95rem; margin: 0 0 12px; opacity: 0.55; font-weight: 400; }
+        .popup-desc { color: var(--cream); font-size: 0.82rem; line-height: 1.65; margin: 0 0 22px; opacity: 0.5; font-family: system-ui, sans-serif; }
+        .popup-listen-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: transparent; border: 1px solid var(--border);
+            color: var(--cream); padding: 10px 22px; border-radius: 30px;
+            font-family: var(--font-heading); font-size: 0.7rem;
+            letter-spacing: 0.15em; text-transform: uppercase;
+            cursor: pointer; transition: all 0.3s; align-self: flex-start;
+        }
+        .popup-listen-btn:hover { background: var(--cream); color: #161414; }
+
+        /* ===== Search Modal ===== */
+        .search-overlay {
+            position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+            background: transparent;
+            -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.35s, visibility 0.35s, backdrop-filter 0.35s;
+        }
+        .search-overlay.active {
+            opacity: 1; visibility: visible; pointer-events: all;
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            background: rgba(0,0,0,0.45);
+        }
+        .search-panel {
+            position: relative; background: #161414;
+            border: 1px solid var(--border-light); border-radius: 16px;
+            max-width: 480px; width: 92%; padding: 32px 28px;
+            opacity: 0; transform: translateY(20px) scale(0.97);
+            transition: opacity 0.4s, transform 0.4s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        .search-overlay.active .search-panel { opacity: 1; transform: translateY(0) scale(1); }
+        .search-title { color: var(--cream); font-family: var(--font-heading); font-size: 1.1rem; margin: 0 0 4px; letter-spacing: 0.05em; }
+        .search-subtitle { font-size: 0.6rem; color: rgba(245,230,208,0.3); font-family: system-ui, sans-serif; letter-spacing: 0.05em; margin: 0 0 22px; }
+        .search-field { display: flex; gap: 10px; margin-bottom: 16px; }
+        .search-field input {
+            flex: 1; background: rgba(245,230,208,0.04);
+            border: 1px solid rgba(245,230,208,0.12); border-radius: 8px;
+            padding: 10px 14px; color: var(--cream);
+            font-family: var(--font-serif); font-size: 0.9rem;
+            outline: none; transition: border-color 0.3s;
+        }
+        .search-field input::placeholder { color: rgba(245,230,208,0.2); }
+        .search-field input:focus { border-color: rgba(245,230,208,0.35); }
+        .search-field button {
+            padding: 10px 18px; border-radius: 30px;
+            background: transparent; border: 1px solid var(--border);
+            color: var(--cream); font-family: var(--font-heading);
+            font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+            cursor: pointer; transition: all 0.3s; white-space: nowrap;
+        }
+        .search-field button:hover { background: var(--cream); color: #161414; }
+        #search-results {
+            max-height: 220px; overflow-y: auto; margin-bottom: 16px;
+        }
+        #search-results::-webkit-scrollbar { width: 3px; }
+        #search-results::-webkit-scrollbar-thumb { background: rgba(245,230,208,0.1); border-radius: 3px; }
+        .result-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 8px; border-radius: 10px;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .result-item:hover { background: rgba(245,230,208,0.04); }
+        .result-item .r-thumb {
+            width: 40px; height: 40px; border-radius: 6px;
+            object-fit: cover; flex-shrink: 0;
+            background: rgba(245,230,208,0.05);
+        }
+        .result-item .r-meta { flex: 1; min-width: 0; }
+        .result-item .r-name { font-size: 0.8rem; font-family: var(--font-serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .result-item .r-artist { font-size: 0.65rem; opacity: 0.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .result-item .r-add { font-size: 0.55rem; font-family: var(--font-heading); letter-spacing: 0.1em; opacity: 0.25; flex-shrink: 0; }
+
+        /* ===== Toast ===== */
+        #toast {
+            position: fixed; bottom: 90px; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(22,20,20,0.95);
+            border: 1px solid var(--border);
+            color: var(--cream); padding: 8px 20px;
+            border-radius: 20px; font-family: var(--font-heading);
+            font-size: 0.6rem; letter-spacing: 0.1em;
+            z-index: 2000; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        #toast .toast-cover {
+            width: 24px; height: 24px; border-radius: 4px;
+            object-fit: cover; vertical-align: middle; margin-right: 6px;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 600px) {
+            body { padding: 4% 4% 140px; justify-content: center; }
+            .icon-cards { width: 55vw; height: 130vw; max-width: none; max-height: none; perspective: 650px; }
+            .icon-cards__item { width: 38vw; height: 38vw; max-width: none; max-height: none; }
+            .gapgutton { position: fixed; bottom: 12px; left: 0; right: 0; gap: 14px; margin-bottom: 0; z-index: 50; justify-content: center; }
+            .btn-prev, .btn-next { width: 42px; height: 42px; }
+            .btn-play { width: 50px; height: 50px; }
+            .btn-prev svg, .btn-next svg { width: 16px; height: 16px; }
+            .btn-play svg { width: 20px; height: 20px; }
+            .drag-hint { display: block; position: fixed; bottom: 66px; left: 0; right: 0; margin: 0; z-index: 50; }
+            h1 { font-size: clamp(0.75rem, 3.5vw, 1.1rem); margin: 0 0 4px; }
+            #track-title { position: fixed; bottom: 86px; left: 0; right: 0; font-size: clamp(1rem, 5.5vw, 1.5rem); min-height: auto; margin: 0; z-index: 50; }
+            .lava-bg { filter: blur(30px); }
+            .lava-blob { filter: blur(20px); }
+            .sound-wave { display: none; }
+            .add-track-btn { bottom: 16px; right: 16px; width: 42px; height: 42px; }
+            .popup-panel { flex-direction: column; max-width: 100%; width: 100%; max-height: 90vh; max-height: 90dvh; overflow-y: auto; border-radius: 16px 16px 0 0; margin-top: auto; }
+            .popup-overlay.active { align-items: flex-end; }
+            .popup-close { top: 12px; right: 12px; width: 40px; height: 40px; }
+            .popup-visual { flex: 0 0 200px; min-height: 200px; }
+            .popup-content { padding: 20px 18px; }
+            .popup-artist { font-size: 1.1rem; }
+            .popup-album { font-size: 0.8rem; }
+            .popup-desc { font-size: 0.75rem; margin-bottom: 16px; }
+            .popup-listen-btn { font-size: 0.6rem; padding: 8px 18px; }
+            .search-panel { width: 100%; max-width: 100%; border-radius: 16px 16px 0 0; margin-top: auto; padding: 24px 18px; }
+            .search-overlay.active { align-items: flex-end; }
+            .slot-indicator { position: fixed; bottom: 104px; z-index: 50; left: 0; right: 0; }
+        }
+        @media (max-width: 380px) {
+            body { padding: 4% 3% 130px; }
+            .icon-cards { width: 50vw; height: 115vw; }
+            .icon-cards__item { width: 34vw; height: 34vw; }
+            h1 { font-size: 0.7rem; }
+            #track-title { font-size: clamp(0.9rem, 5vw, 1.3rem); min-height: 1.5rem; }
+            .gapgutton { gap: 10px; }
+            .btn-prev, .btn-next { width: 38px; height: 38px; }
+            .btn-play { width: 44px; height: 44px; }
+            .popup-visual { flex: 0 0 140px; min-height: 140px; }
+            .popup-content { padding: 16px 14px; }
+        }
+        @media (max-height: 500px) and (orientation: landscape) {
+            body { padding: 2% 5%; justify-content: center; }
+            .icon-cards { width: 50vw; height: 30vh; perspective: 500px; }
+            .icon-cards__item { width: 16vw; height: 16vw; }
+            .gapgutton { margin-bottom: 6px; }
+            h1 { margin: 0 0 2px; }
+            #track-title { margin: 2px 0 4px; min-height: 1.5rem; }
+        }
+        @media (min-width: 601px) and (max-width: 1024px) {
+            body { padding: 3% 8% 0; }
+            .icon-cards { width: 70vw; max-width: 520px; }
+            .icon-cards__item { width: 20vw; height: 20vw; max-width: 220px; max-height: 220px; }
+            .popup-panel { max-width: 580px; }
+        }
+        #playlist { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- ============ SVG Filters ============ -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0">
+        <defs>
+            <filter id="goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="30" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 60 -7" result="goo" />
+                <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+            </filter>
+            <filter id="grain-fine" x="-20%" y="-20%" width="140%" height="140%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch" seed="2" />
+                <feColorMatrix type="saturate" values="0" />
+            </filter>
+            <filter id="grain-coarse" x="-20%" y="-20%" width="140%" height="140%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.45" numOctaves="2" stitchTiles="stitch" seed="7" />
+                <feColorMatrix type="saturate" values="0" />
+            </filter>
+            <filter id="paper-texture" x="0%" y="0%" width="100%" height="100%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.65 0.55" numOctaves="5" stitchTiles="stitch" seed="3" result="noise" />
+                <feColorMatrix in="noise" type="saturate" values="0" result="gray" />
+                <feComponentTransfer in="gray" result="crumple">
+                    <feFuncR type="linear" slope="0.12" intercept="0.04" />
+                    <feFuncG type="linear" slope="0.11" intercept="0.035" />
+                    <feFuncB type="linear" slope="0.10" intercept="0.03" />
+                </feComponentTransfer>
+                <feBlend in="crumple" in2="SourceGraphic" mode="screen" />
+            </filter>
+        </defs>
+    </svg>
+
+    <!-- ============ Background Layers ============ -->
+    <div class="paper-bg"></div>
+    <div class="grain-overlay grain-fine"></div>
+    <div class="grain-overlay grain-coarse"></div>
+    <div class="vignette-overlay"></div>
+    <div id="lava-bg" class="lava-bg"></div>
+
+    <!-- ============ Main Content ============ -->
+    <h1>音 乐 播 放 器</h1>
+
+    <!-- 槽位指示器 -->
+    <div class="slot-indicator" id="slot-indicator">
+        <span class="slot-dot"></span><span class="slot-dot"></span><span class="slot-dot"></span>
+        <span class="slot-dot"></span><span class="slot-dot"></span><span class="slot-dot"></span>
+    </div>
+
+    <figure class="icon-cards" id="icon-cards">
+        <div class="icon-cards__content" id="icon-cards-content">
+            <!-- JS动态填充6张卡片 -->
+        </div>
+    </figure>
+
+    <h2 id="track-title">年少有为 - 李荣浩</h2>
+    <p class="drag-hint">← 滑动卡片切换歌曲 →</p>
+    <ul id="playlist"></ul>
+
+    <!-- Button Group -->
+    <div class="gapgutton">
+        <button class="btn-player btn-prev" id="prev" aria-label="上一曲">
+            <span class="btn-fill"></span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="19 20 9 12 19 4"></polygon><line x1="5" y1="4" x2="5" y2="20"></line>
+            </svg>
+        </button>
+        <button class="btn-player btn-play" id="play" aria-label="播放">
+            <span class="btn-fill"></span>
+            <svg class="icon-play" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <polygon points="6 3 20 12 6 21"></polygon>
+            </svg>
+            <svg class="icon-pause" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="display:none">
+                <rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>
+            </svg>
+        </button>
+        <button class="btn-player btn-next" id="next" aria-label="下一曲">
+            <span class="btn-fill"></span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 4 15 12 5 20"></polygon><line x1="19" y1="4" x2="19" y2="20"></line>
+            </svg>
+        </button>
+    </div>
+
+    <!-- ============ Popup Overlay ============ -->
+    <div id="popup-overlay" class="popup-overlay">
+        <div class="popup-panel">
+            <button id="popup-close" class="popup-close" aria-label="关闭">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="popup-visual">
+                <img id="popup-img" class="popup-img" src="" alt="">
+                <div class="popup-img-grain"></div>
+            </div>
+            <div class="popup-content">
+                <span class="popup-label" id="popup-label">歌手</span>
+                <h2 class="popup-artist" id="popup-artist"></h2>
+                <div class="popup-divider"></div>
+                <h3 class="popup-album" id="popup-album"></h3>
+                <p class="popup-desc" id="popup-desc"></p>
+                <button class="popup-listen-btn" id="popup-listen">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                        <polygon points="6 3 20 12 6 21"></polygon>
+                    </svg>
+                    <span>播 放</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ Search Modal ============ -->
+    <div id="search-overlay" class="search-overlay">
+        <div class="search-panel">
+            <button id="search-close" class="popup-close" aria-label="关闭">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <h2 class="search-title">搜索歌曲</h2>
+            <p class="search-subtitle">选中歌曲将替换第 <strong id="replace-slot-num">1</strong> 张卡片 · 共6槽循环</p>
+            <div class="search-field">
+                <input type="text" id="search-input" placeholder="输入歌名或歌手..."
+                       onkeydown="if(event.key==='Enter')doSearch()">
+                <button onclick="doSearch()">搜索</button>
+            </div>
+            <div id="search-results">
+                <p style="font-size:0.6rem;opacity:0.2;text-align:center;padding:28px 0;">输入关键词开始搜索</p>
+            </div>
+            <span id="search-error" style="font-size:0.6rem;color:#f77e7e;font-family:system-ui,sans-serif;"></span>
+        </div>
+    </div>
+
+    <!-- ============ VIP Cookie 登录弹窗 ============ -->
+    <div id="vip-overlay" class="vip-overlay">
+        <div class="vip-panel" onclick="event.stopPropagation()">
+            <button class="popup-close" onclick="closeVipModal()" style="position:absolute;top:14px;right:14px;" aria-label="关闭">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <h2 class="vip-title">网易云VIP登录</h2>
+            <p class="vip-subtitle">粘贴Cookie后可播放VIP歌曲</p>
+            <ol class="vip-steps">
+                <li>浏览器打开 <a href="https://music.163.com" target="_blank" style="color:var(--cream);opacity:0.8;">music.163.com</a> 并登录</li>
+                <li>按 <kbd>F12</kbd> → Application → Cookies → music.163.com</li>
+                <li>复制全部Cookie（名称=值 的格式）粘贴至下方</li>
+            </ol>
+            <textarea id="cookie-input" class="cookie-input" placeholder="MUSIC_U=xxx; __csrf=xxx; ..." rows="3"></textarea>
+            <div class="vip-actions">
+                <button class="cookie-save-btn" onclick="saveCookie()">保存Cookie</button>
+                <button class="cookie-clear-btn" onclick="vipCookie='';localStorage.removeItem('ncm_cookie');document.getElementById('cookie-input').value='';updateVipStatus();closeVipModal();showToast('Cookie已清除')">清除</button>
+            </div>
+            <p class="vip-note">Cookie仅保存在浏览器本地，过期后需重新粘贴（约1-7天）</p>
+        </div>
+    </div>
+
+    <!-- ============ Reactive Toggle + Indicator ============ -->
+    <button id="reactive-toggle" class="reactive-toggle active" title="特效开关" aria-label="特效开关">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 10s3-3 5-3 4 6 6 6 5-3 5-3"/><path d="M2 17s3-3 5-3 4 6 6 6 5-3 5-3"/>
+        </svg>
+    </button>
+    <span id="reactive-indicator" class="reactive-indicator show">特效 ON</span>
+
+    <!-- ============ VIP 登录按钮 ============ -->
+    <button id="vip-btn" class="vip-btn" title="VIP登录" aria-label="VIP登录" onclick="openVipModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1l3 9h9l-7 5.25 2.75 8.75L12 18 4.25 24 7 15.25 0 10h9z"/>
+        </svg>
+    </button>
+    <span id="vip-indicator" class="vip-indicator">VIP</span>
+
+    <!-- ============ Add Track Floating Button ============ -->
+    <button id="add-track-btn" class="add-track-btn" title="搜索替换歌曲" aria-label="添加歌曲">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    </button>
+
+    <!-- ============ Sound Wave Visualizer ============ -->
+    <div id="sound-wave" class="sound-wave">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <!-- ============ Audio ============ -->
+    <audio id="audio-player" crossorigin="anonymous" preload="none"></audio>
+
+    <!-- ============ Toast ============ -->
+    <div id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script>
+    // ============================================================
+    //  6槽循环替换 + 本地网易云API + 100%还原原站视觉
+    // ============================================================
+
+    const API = ['localhost', '127.0.0.1'].includes(window.location.hostname) ? '' : '/api';
+
+    // ============================================================
+    //  VIP Cookie 管理
+    // ============================================================
+    let vipCookie = localStorage.getItem('ncm_cookie') || '';
+
+    function apiFetch(path) {
+        let url = API + path;
+        if (vipCookie) {
+            url += (url.includes('?') ? '&' : '?') + 'cookie=' + encodeURIComponent(vipCookie);
+        }
+        return fetch(url);
+    }
+
+    function saveCookie() {
+        const input = document.getElementById('cookie-input');
+        vipCookie = input.value.trim();
+        if (vipCookie) {
+            localStorage.setItem('ncm_cookie', vipCookie);
+            updateVipStatus();
+            showToast('Cookie已保存 · 重新搜索即可播放VIP歌曲');
+        } else {
+            localStorage.removeItem('ncm_cookie');
+            vipCookie = '';
+            updateVipStatus();
+            showToast('Cookie已清除');
+        }
+    }
+
+    function updateVipStatus() {
+        const btn = document.getElementById('vip-btn');
+        const ind = document.getElementById('vip-indicator');
+        if (vipCookie) {
+            btn.classList.add('vip-active');
+            ind.classList.add('show');
+        } else {
+            btn.classList.remove('vip-active');
+            ind.classList.remove('show');
+        }
+    }
+
+    function openVipModal() {
+        const overlay = document.getElementById('vip-overlay');
+        overlay.classList.add('active');
+        document.getElementById('cookie-input').value = vipCookie;
+        setTimeout(() => document.getElementById('cookie-input').focus(), 200);
+        overlay.onclick = function(e) { if (e.target === overlay) closeVipModal(); };
+    }
+    function closeVipModal() {
+        document.getElementById('vip-overlay').classList.remove('active');
+    }
+
+    // --- 6个默认槽位（网易云热门歌曲ID） ---
+    const DEFAULT_SLOTS = [
+        { nid:'1293886117', title:'年少有为', artist:'李荣浩' },
+        { nid:'65766',      title:'富士山下', artist:'陈奕迅' },
+        { nid:'254574',     title:'后来',     artist:'刘若英' },
+        { nid:'30431364',   title:'光',       artist:'陈粒' },
+        { nid:'167850',     title:'庐州月',   artist:'许嵩' },
+        { nid:'108258',     title:'孤枕难眠', artist:'周华健' },
+    ];
+    const SLOT_COLORS = ['#FDD94F', '#4A90D9', '#888888', '#7BA7CC', '#F7E04B', '#F77E7E'];
+    const DEFAULT_BLOB_COLOR = '#f5e6d0';
+
+    // --- 状态 ---
+    let slots      = [];        // 6个 { nid, title, artist, cover, album, color }
+    let replaceIdx = 0;        // 下一个要被替换的槽位 (0-5)
+    let currentIdx = 0;        // 当前显示的槽位
+    let isPlaying  = false;
+    let reactiveMode = 'off';
+
+    // --- DOM ---
+    const contentEl   = document.getElementById('icon-cards-content');
+    const trackTitle  = document.getElementById('track-title');
+    const audio       = document.getElementById('audio-player');
+    const soundWave   = document.getElementById('sound-wave');
+    const popupOverlay = document.getElementById('popup-overlay');
+    const popupImg    = document.getElementById('popup-img');
+    const popupArtist = document.getElementById('popup-artist');
+    const popupAlbum  = document.getElementById('popup-album');
+    const popupDesc   = document.getElementById('popup-desc');
+    const popupListen = document.getElementById('popup-listen');
+    const searchOverlay = document.getElementById('search-overlay');
+    const reactiveToggle = document.getElementById('reactive-toggle');
+    const reactiveInd = document.getElementById('reactive-indicator');
+    const slotIndicator = document.getElementById('slot-indicator');
+    const replaceSlotNum = document.getElementById('replace-slot-num');
+    const toastEl     = document.getElementById('toast');
+    const playIcon    = document.querySelector('.icon-play');
+    const pauseIcon   = document.querySelector('.icon-pause');
+    const iconCards   = document.getElementById('icon-cards');
+
+    // ============================================================
+    //  INIT — 从本地API获取6首默认歌曲的封面和专辑信息
+    // ============================================================
+    function fixCover(url) { return url ? url.replace(/^http:/, 'https:') : ''; }
+    function getArtistName(song) {
+        const list = song.ar || song.artists || [];
+        return list.length ? list.map(a => a.name).join('/') : '未知歌手';
+    }
+
+    async function init() {
+        // 并行获取6首歌的详情
+        const results = await Promise.all(DEFAULT_SLOTS.map(async (s) => {
+            try {
+                const res = await apiFetch(`/song/detail?ids=${s.nid}`);
+                const data = await res.json();
+                if (data.songs && data.songs[0]) {
+                    const song = data.songs[0];
+                    return {
+                        nid: s.nid,
+                        title: song.name || s.title,
+                        artist: getArtistName(song),
+                        cover: fixCover(song.al?.picUrl),
+                        album: song.al ? song.al.name : '',
+                    };
+                }
+            } catch(e) { console.warn('获取歌曲详情失败:', s.title, e); }
+            // 降级：用搜索获取封面
+            try {
+                const res = await apiFetch(`/search?keywords=${encodeURIComponent(s.artist + ' ' + s.title)}&limit=1`);
+                const data = await res.json();
+                const song = data.result?.songs?.[0];
+                if (song) {
+                    return {
+                        nid: s.nid,
+                        title: song.name || s.title,
+                        artist: getArtistName(song),
+                        cover: fixCover(song.al?.picUrl),
+                        album: song.al ? song.al.name : '',
+                    };
+                }
+            } catch(e) {}
+            return { nid: s.nid, title: s.title, artist: s.artist, cover: '', album: '' };
+        }));
+
+        slots = results.map((track, index) => ({
+            ...track,
+            color: track.color || SLOT_COLORS[index] || DEFAULT_BLOB_COLOR,
+        }));
+        updateSlotDots();
+        renderCards();
+        updateContentTransform();
+        updateTrackInfo();
+    }
+
+    // ============================================================
+    //  CARDS — 固定6张，JS动态设置3D位置
+    // ============================================================
+    function cardTransform(index, scale) {
+        const angle = index * 60;
+        const s = scale || 1;
+        if (isMobile()) {
+            return `transform: rotateX(${-angle}deg) translateZ(50vw) scale(${s})`;
+        }
+        return `transform: rotateY(${angle}deg) translateZ(38vw) scale(${s})`;
+    }
+
+    function renderCards() {
+        contentEl.innerHTML = slots.map((t, i) => {
+            const s = isPlaying ? (i === currentIdx ? 1.06 : 0.93) : 1;
+            const act = (i === currentIdx) ? ' is-active-card' : '';
+            const ply = isPlaying ? ' playing' : '';
+            return `
+            <div class="icon-cards__item${act}${ply}" data-index="${i}"
+                 style="${cardTransform(i, s)}; background-image: url('${t.cover || ''}'); background-size: cover; background-position: center;">
+                ${!t.cover ? `<div style="width:100%;height:100%;background:linear-gradient(135deg, ${gradientColor(i)})"></div>` : ''}
+                <div class="card-glow"></div>
+            </div>`;
+        }).join('');
+        bindCardClicks();
+    }
+
+    function updateCardScales() {
+        const cards = contentEl.querySelectorAll('.icon-cards__item');
+        cards.forEach((card, i) => {
+            const s = isPlaying ? (i === currentIdx ? 1.06 : 0.93) : 1;
+            card.style.transform = cardTransform(i, s).replace('transform: ', '');
+            if (isPlaying) {
+                card.classList.add('playing');
+                if (i === currentIdx) card.classList.add('is-active-card');
+                else card.classList.remove('is-active-card');
+            } else {
+                card.classList.remove('playing', 'is-active-card');
+            }
+        });
+    }
+
+    function gradientColor(i) {
+        const colors = [
+            '#f59e0b,#ea580c,#92400e', '#6366f1,#7c3aed,#312e81',
+            '#14b8a6,#0d9488,#134e4a', '#ec4899,#a855f7,#4c1d95',
+            '#ef4444,#f97316,#7f1d1d', '#3b82f6,#1d4ed8,#172554'
+        ];
+        return colors[i] || colors[0];
+    }
+
+    function bindCardClicks() {
+        contentEl.querySelectorAll('.icon-cards__item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (wasDragging) return;
+                const idx = parseInt(el.dataset.index);
+                if (idx === currentIdx) {
+                    openPopup(idx);
+                }
+            });
+        });
+    }
+
+    function updateContentTransform() {
+        const tz = isMobile() ? '50vw' : '38vw';
+        const axis = isMobile() ? 'rotateX' : 'rotateY';
+        const sign = isMobile() ? 1 : -1;
+        contentEl.style.transform = `translateZ(-${tz}) ${axis}(${sign * currentIdx * 60}deg)`;
+    }
+
+    // ============================================================
+    //  SLOT MANAGEMENT
+    // ============================================================
+    function updateSlotDots() {
+        const dots = slotIndicator.querySelectorAll('.slot-dot');
+        dots.forEach((d, i) => {
+            d.classList.remove('active', 'replacing');
+            if (i === currentIdx) d.classList.add('active');
+        });
+        replaceSlotNum.textContent = replaceIdx + 1;
+    }
+
+    function replaceSlot(track) {
+        const slotColor = slots[replaceIdx]?.color || SLOT_COLORS[replaceIdx] || DEFAULT_BLOB_COLOR;
+        // 修复封面URL为https
+        track.cover = fixCover(track.cover || '');
+        // 修复空歌手名
+        if (!track.artist || track.artist === '未知歌手') track.artist = '未知歌手';
+        // 在 replaceIndex 位置替换
+        slots[replaceIdx] = { ...track, color: slotColor };
+
+        // 高亮被替换的槽位圆点
+        const dots = slotIndicator.querySelectorAll('.slot-dot');
+        dots[replaceIdx].classList.add('replacing');
+        setTimeout(() => dots[replaceIdx].classList.remove('replacing'), 600);
+
+        // 跳转到新替换的卡片
+        currentIdx = replaceIdx;
+
+        // 指针前进，循环
+        replaceIdx = (replaceIdx + 1) % 6;
+
+        // 重新渲染
+        renderCards();
+        updateContentTransform();
+        updateSlotDots();
+        updateTrackInfo();
+        updateLavaColors();
+
+        // 标记刚替换的卡片高亮
+        const newCard = contentEl.querySelector(`[data-index="${currentIdx}"]`);
+        if (newCard) {
+            newCard.classList.add('just-replaced');
+            setTimeout(() => newCard.classList.remove('just-replaced'), 1500);
+        }
+
+        // 自动播放新歌
+        loadAndPlay(track);
+    }
+
+    function updateTrackInfo() {
+        const t = slots[currentIdx];
+        trackTitle.textContent = t.title + ' - ' + t.artist;
+        document.title = t.artist + ' - ' + t.title;
+    }
+
+    // ============================================================
+    //  CAROUSEL NAVIGATION
+    // ============================================================
+    function goTo(index, autoPlay) {
+        index = ((index % 6) + 6) % 6;
+        const sameTrack = (index === currentIdx);
+        currentIdx = index;
+        updateContentTransform();
+        updateSlotDots();
+        updateTrackInfo();
+        updateLavaColors();
+        if (isPlaying) updateCardScales();
+        if (autoPlay !== false && !sameTrack) {
+            loadAndPlay(slots[currentIdx]);
+        }
+    }
+    function goNext() { goTo(currentIdx + 1); }
+    function goPrev() { goTo(currentIdx - 1); }
+
+    // ============================================================
+    //  DRAG / SWIPE
+    // ============================================================
+    let isDragging   = false;
+    let wasDragging  = false;
+    let dragStartX   = 0;
+    let dragStartY   = 0;
+    let dragStartIdx = 0;
+
+    iconCards.addEventListener('mousedown', onDragStart);
+    iconCards.addEventListener('touchstart', onDragStart, { passive: false });
+    window.addEventListener('mousemove', onDragMove);
+    window.addEventListener('touchmove', onDragMove, { passive: false });
+    window.addEventListener('mouseup', onDragEnd);
+    window.addEventListener('touchend', onDragEnd);
+
+    function onDragStart(e) {
+        isDragging = true; wasDragging = false;
+        const pt = e.touches ? e.touches[0] : e;
+        dragStartX = pt.clientX; dragStartY = pt.clientY;
+        dragStartIdx = currentIdx;
+        contentEl.style.transition = 'none';
+        e.preventDefault?.();
+    }
+
+    function onDragMove(e) {
+        if (!isDragging) return;
+        const pt = e.touches ? e.touches[0] : e;
+        const dx = pt.clientX - dragStartX;
+        const dy = pt.clientY - dragStartY;
+        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) wasDragging = true;
+        const delta = isMobile() ? dy * 0.1 : dx * 0.1;
+        const offset = delta / 60;
+        currentIdx = dragStartIdx - offset;
+        // Clamp to nearest valid rotation
+        const angle = currentIdx * 60;
+        const tz = isMobile() ? '50vw' : '38vw';
+        const axis = isMobile() ? 'rotateX' : 'rotateY';
+        const sign = isMobile() ? 1 : -1;
+        contentEl.style.transform = `translateZ(-${tz}) ${axis}(${sign * angle}deg)`;
+    }
+
+    function onDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        contentEl.style.transition = 'transform 0.55s cubic-bezier(0.25, 0.1, 0.25, 1)';
+        currentIdx = Math.round(currentIdx);
+        goTo(currentIdx);
+        setTimeout(() => { wasDragging = false; }, 50);
+    }
+
+    // ============================================================
+    //  AUDIO (本地API + Cookie支持)
+    // ============================================================
+    async function loadAndPlay(track) {
+        if (!track || !track.nid) { showToast('无法获取播放地址'); return; }
+        showToast('正在加载 ' + track.title + '...');
+        try {
+            // lossless获取完整音频（非30秒试听）
+            let url = null;
+            for (const level of ['lossless', 'exhigh', 'higher', 'standard']) {
+                const res = await apiFetch(`/song/url/v1?id=${track.nid}&level=${level}`);
+                const data = await res.json();
+                if (data.data?.[0]?.url) {
+                    url = data.data[0].url;
+                    break;
+                }
+            }
+            if (url) {
+                audio.src = url;
+                audio.play().then(() => setPlaying(true)).catch(() => showToast('播放失败'));
+            } else {
+                showToast('无播放源（可尝试VIP登录）');
+            }
+        } catch(e) {
+            showToast('网络错误');
+        }
+    }
+
+    function togglePlay() {
+        if (!audio.src || audio.src === window.location.href) {
+            loadAndPlay(slots[currentIdx]);
+            return;
+        }
+        if (isPlaying) {
+            audio.pause();
+        } else {
+            audio.play().then(() => setPlaying(true)).catch(() => loadAndPlay(slots[currentIdx]));
+        }
+    }
+
+    function setPlaying(p) {
+        isPlaying = p;
+        playIcon.style.display = p ? 'none' : '';
+        pauseIcon.style.display = p ? '' : 'none';
+        soundWave.classList.toggle('active', p);
+        updateCardScales();
+        updateLavaPlayback();
+    }
+
+    audio.addEventListener('play',  () => setPlaying(true));
+    audio.addEventListener('pause', () => setPlaying(false));
+    audio.addEventListener('ended', () => { setPlaying(false); goNext(); });
+    audio.addEventListener('error', () => setPlaying(false));
+
+    // ============================================================
+    //  POPUP
+    // ============================================================
+    function openPopup(index) {
+        const t = slots[index];
+        popupImg.src = t.cover || '';
+        popupArtist.textContent = t.artist;
+        popupAlbum.textContent = t.title + (t.album ? ' · ' + t.album : '');
+        popupDesc.textContent = '网易云音乐 · 槽位 ' + (index + 1) + ' / 6';
+        popupListen.onclick = () => { closePopup(); goTo(index); loadAndPlay(t); };
+        popupOverlay.classList.add('active');
+    }
+
+    function closePopup() { popupOverlay.classList.remove('active'); }
+    popupOverlay.addEventListener('click', (e) => { if (e.target === popupOverlay) closePopup(); });
+    document.getElementById('popup-close').addEventListener('click', closePopup);
+
+    // ============================================================
+    //  SEARCH (两步：搜ID → batch detail拿封面)
+    // ============================================================
+    async function doSearch() {
+        const kw = document.getElementById('search-input').value.trim();
+        const resultsDiv = document.getElementById('search-results');
+        const errEl = document.getElementById('search-error');
+        errEl.textContent = '';
+        if (!kw) { resultsDiv.innerHTML = '<p style="font-size:0.6rem;opacity:0.2;text-align:center;padding:28px 0;">请输入关键词</p>'; return; }
+        resultsDiv.innerHTML = '<p style="font-size:0.6rem;opacity:0.3;text-align:center;padding:28px 0;">搜索中...</p>';
+
+        try {
+            // 第一步：搜索获取歌曲ID列表
+            const res = await apiFetch(`/search?keywords=${encodeURIComponent(kw)}&limit=10`);
+            const data = await res.json();
+            const songs = data.result?.songs;
+            if (!songs || songs.length === 0) {
+                resultsDiv.innerHTML = '<p style="font-size:0.6rem;opacity:0.2;text-align:center;padding:28px 0;">未找到相关歌曲</p>';
+                return;
+            }
+
+            const topSongs = songs.slice(0, 8);
+
+            // 先用占位封面+正确的歌手名立即渲染
+            function renderResults(songMap) {
+                resultsDiv.innerHTML = topSongs.map(s => {
+                    const id     = String(s.id);
+                    const name   = esc(String(s.name || '未知歌曲'));
+                    const artist = (s.artists && s.artists.length) ? esc(s.artists.map(a => a.name).join('/')) : '未知歌手';
+                    const album  = s.album?.name ? esc(s.album.name) : '';
+                    const info   = songMap[id] || {};
+                    const cover  = info.cover ? fixCover(info.cover) : '';
+                    const fullArtist = info.artist || artist;
+                    const fullAlbum  = info.album || album;
+                    return `
+                    <div class="result-item" data-id="${id}" data-name="${info.name || name}" data-artist="${fullArtist}" data-cover="${cover}" data-album="${fullAlbum}">
+                        ${cover ? `<img class="r-thumb" src="${cover}" alt="" loading="lazy" onerror="this.remove()">` : `<div class="r-thumb" style="background:linear-gradient(135deg,rgba(245,230,208,0.04),rgba(245,230,208,0.08))"></div>`}
+                        <div class="r-meta"><div class="r-name">${info.name || name}</div><div class="r-artist">${fullArtist}</div></div>
+                        <span class="r-add">替换槽${replaceIdx+1}</span>
+                    </div>`;
+                }).join('');
+                bindResultClicks();
+            }
+
+            // 立即用search结果渲染（无封面）
+            const initMap = {};
+            topSongs.forEach(s => {
+                initMap[s.id] = {
+                    name: s.name,
+                    artist: (s.artists && s.artists.length) ? s.artists.map(a => a.name).join('/') : '',
+                    album: s.album?.name || '',
+                    cover: '',
+                };
+            });
+            renderResults(initMap);
+
+            // 第二步：并行获取封面（batch detail API）
+            const ids = topSongs.map(s => s.id).join(',');
+            try {
+                const detailRes = await apiFetch(`/song/detail?ids=${ids}`);
+                const detailData = await detailRes.json();
+                if (detailData.songs && detailData.songs.length) {
+                    const songMap = {};
+                    detailData.songs.forEach(song => {
+                        const artist = (song.ar && song.ar.length) ? song.ar.map(a => a.name).join('/') : '';
+                        songMap[song.id] = {
+                            name: song.name,
+                            artist: artist,
+                            album: song.al?.name || '',
+                            cover: fixCover(song.al?.picUrl || ''),
+                        };
+                    });
+                    // 用已有信息做merge
+                    topSongs.forEach(s => {
+                        if (!songMap[s.id]) songMap[s.id] = initMap[s.id];
+                        else {
+                            // 保留initMap中已有的，用detail补齐
+                            songMap[s.id] = { ...initMap[s.id], ...songMap[s.id] };
+                        }
+                    });
+                    renderResults(songMap);
+                }
+            } catch(e) {
+                console.warn('获取封面失败，使用占位图', e);
+            }
+
+        } catch(e) {
+            errEl.textContent = '搜索失败 · API服务是否已启动？(node server.js)';
+            resultsDiv.innerHTML = '';
+        }
+    }
+
+    function bindResultClicks() {
+        document.querySelectorAll('#search-results .result-item').forEach(el => {
+            if (el._bound) return;
+            el._bound = true;
+            el.addEventListener('click', () => {
+                const track = {
+                    nid: el.dataset.id,
+                    title: el.dataset.name,
+                    artist: el.dataset.artist,
+                    cover: el.dataset.cover,
+                    album: el.dataset.album,
+                };
+                replaceSlot(track);
+                closeSearch();
+                showToastWithCover(track.cover, '已替换：' + track.artist + ' - ' + track.title);
+            });
+        });
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    function openSearch() {
+        searchOverlay.classList.add('active');
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-results').innerHTML =
+            '<p style="font-size:0.6rem;opacity:0.2;text-align:center;padding:28px 0;">输入关键词开始搜索</p>';
+        document.getElementById('search-error').textContent = '';
+        replaceSlotNum.textContent = replaceIdx + 1;
+        setTimeout(() => document.getElementById('search-input').focus(), 200);
+    }
+    function closeSearch() { searchOverlay.classList.remove('active'); }
+    searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
+    document.getElementById('search-close').addEventListener('click', closeSearch);
+
+    // ============================================================
+    //  REACTIVE MODE
+    // ============================================================
+    const REACTIVE_MODES = ['off', 'soft', 'intense'];
+    const REACTIVE_LABELS = {
+        off: '反应 OFF',
+        soft: '反应 柔和',
+        intense: '反应 强烈',
+    };
+
+    function setupReactiveMode() {
+        reactiveToggle.classList.remove('active', 'active-soft');
+        reactiveInd.textContent = REACTIVE_LABELS[reactiveMode];
+        reactiveToggle.addEventListener('click', toggleReactive);
+    }
+
+    function toggleReactive() {
+        const nextIndex = (REACTIVE_MODES.indexOf(reactiveMode) + 1) % REACTIVE_MODES.length;
+        reactiveMode = REACTIVE_MODES[nextIndex];
+
+        reactiveToggle.classList.remove('active', 'active-soft');
+        if (reactiveMode === 'intense') reactiveToggle.classList.add('active');
+        if (reactiveMode === 'soft') reactiveToggle.classList.add('active-soft');
+
+        reactiveInd.textContent = REACTIVE_LABELS[reactiveMode];
+        reactiveInd.classList.add('show');
+        setTimeout(() => reactiveInd.classList.remove('show'), 1400);
+
+        if (analyser) analyser.smoothingTimeConstant = reactiveMode === 'intense' ? 0.2 : 0.4;
+        updateLavaPlayback();
+    }
+
+    // ============================================================
+    //  LAVA BLOBS (7 blobs + GSAP drift + Web Audio reactive)
+    // ============================================================
+    const lavaBg = document.getElementById('lava-bg');
+    const blobs = [];
+    const BLOB_COUNT = 7;
+    let lavaTweens = [];
+    let blobBaseSizes = [];
+    let audioCtx = null;
+    let analyser = null;
+    let audioSource = null;
+    let freqData = null;
+    let reactiveRafId = null;
+    let blobPhases = null;
+    let blobSmoothed = null;
+    let blobPrevEnergy = null;
+
+    function gsapReady() {
+        return window.gsap && typeof window.gsap.to === 'function';
+    }
+
+    function killLavaTweens() {
+        lavaTweens.forEach(tween => tween && typeof tween.kill === 'function' && tween.kill());
+        lavaTweens = [];
+    }
+
+    function getSlotIndex(index = currentIdx) {
+        const total = slots.length || SLOT_COLORS.length;
+        return ((Math.round(index) % total) + total) % total;
+    }
+
+    function getTrackColor(index = currentIdx) {
+        const slotIndex = getSlotIndex(index);
+        return slots[slotIndex]?.color || SLOT_COLORS[slotIndex] || DEFAULT_BLOB_COLOR;
+    }
+
+    function setupLava() {
+        lavaBg.innerHTML = '';
+        blobs.length = 0;
+        blobBaseSizes = [];
+        const mobile = isMobile();
+
+        for (let i = 0; i < BLOB_COUNT; i++) {
+            const blob = document.createElement('div');
+            blob.className = 'lava-blob';
+            blob.style.background = getTrackColor();
+            lavaBg.appendChild(blob);
+            blobs.push(blob);
+
+            const left = (i % 3 - 1) * (mobile ? 25 : 20) + 50;
+            const top = 30 + (i * 7) % 40;
+            if (gsapReady()) {
+                gsap.set(blob, { left: `${left}%`, top: `${top}%`, xPercent: -50, yPercent: -50, opacity: 0, scale: 0 });
+            } else {
+                blob.style.left = `${left}%`;
+                blob.style.top = `${top}%`;
+                blob.style.opacity = '0';
+                blob.style.transform = 'translate(-50%, -50%) scale(0)';
+            }
+        }
+    }
+
+    function updateLavaColors() {
+        const color = getTrackColor();
+        blobs.forEach(blob => {
+            if (gsapReady()) {
+                gsap.to(blob, { backgroundColor: color, duration: 1.2, ease: 'power2.out' });
+            } else {
+                blob.style.background = color;
+            }
+        });
+    }
+
+    function showLava() {
+        stopReactiveLava();
+        killLavaTweens();
+        updateLavaColors();
+
+        const mobile = isMobile();
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        blobBaseSizes = [];
+
+        blobs.forEach((blob, index) => {
+            const size = mobile ? 120 + Math.random() * 120 : 140 + Math.random() * 220;
+            blobBaseSizes[index] = size;
+
+            if (gsapReady()) {
+                gsap.set(blob, {
+                    width: size,
+                    height: size,
+                    x: 0,
+                    y: 0,
+                    scale: 0,
+                    scaleX: 1,
+                    scaleY: 1,
+                    rotation: 0,
+                    opacity: 0,
+                    xPercent: -50,
+                    yPercent: -50,
+                });
+                lavaTweens.push(gsap.to(blob, {
+                    opacity: 0.5 + Math.random() * 0.2,
+                    scale: 1,
+                    duration: 1.2 + index * 0.12,
+                    ease: 'power3.out',
+                }));
+                lavaTweens.push(gsap.to(blob, {
+                    x: () => (Math.random() - 0.5) * (mobile ? w * 0.4 : w * 0.35),
+                    y: () => (Math.random() - 0.5) * (mobile ? h * 0.35 : h * 0.3),
+                    duration: () => 5 + Math.random() * 5,
+                    ease: 'sine.inOut',
+                    repeat: -1,
+                    yoyo: true,
+                    delay: index * 0.3,
+                }));
+                lavaTweens.push(gsap.to(blob, {
+                    scaleX: () => 0.7 + Math.random() * 0.6,
+                    scaleY: () => 0.7 + Math.random() * 0.6,
+                    duration: () => 3 + Math.random() * 4,
+                    ease: 'sine.inOut',
+                    repeat: -1,
+                    yoyo: true,
+                    delay: index * 0.25,
+                }));
+                lavaTweens.push(gsap.to(blob, {
+                    borderRadius: () => {
+                        const r = Array.from({ length: 8 }, () => 25 + Math.random() * 35);
+                        return `${r[0]}% ${r[1]}% ${r[2]}% ${r[3]}% / ${r[4]}% ${r[5]}% ${r[6]}% ${r[7]}%`;
+                    },
+                    duration: () => 3 + Math.random() * 3,
+                    ease: 'sine.inOut',
+                    repeat: -1,
+                    yoyo: true,
+                    delay: index * 0.2,
+                }));
+            } else {
+                blob.style.width = `${size}px`;
+                blob.style.height = `${size}px`;
+                blob.style.opacity = String(0.5 + Math.random() * 0.2);
+                blob.style.transform = 'translate(-50%, -50%) scale(1)';
+            }
+        });
+    }
+
+    function hideLava() {
+        stopReactiveLava();
+        killLavaTweens();
+        blobs.forEach((blob, index) => {
+            if (gsapReady()) {
+                lavaTweens.push(gsap.to(blob, {
+                    opacity: 0,
+                    scale: 0,
+                    duration: 0.8 + index * 0.1,
+                    ease: 'power2.in',
+                    onComplete: () => {
+                        blob.style.borderRadius = '';
+                        blob.style.width = '';
+                        blob.style.height = '';
+                        blob.style.transform = '';
+                    },
+                }));
+            } else {
+                blob.style.opacity = '0';
+                blob.style.transform = 'translate(-50%, -50%) scale(0)';
+            }
+        });
+    }
+
+    function ensureAudioCtx() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 512;
+            analyser.smoothingTimeConstant = 0.4;
+            audioSource = audioCtx.createMediaElementSource(audio);
+            audioSource.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            freqData = new Uint8Array(analyser.frequencyBinCount);
+        }
+        analyser.smoothingTimeConstant = reactiveMode === 'intense' ? 0.2 : 0.4;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function initBlobPhases() {
+        blobPhases = blobs.map(() => ({
+            phaseX: Math.random() * Math.PI * 2,
+            phaseY: Math.random() * Math.PI * 2,
+            speedX: 0.6 + Math.random() * 0.8,
+            speedY: 0.5 + Math.random() * 0.7,
+            rotSpeed: (Math.random() - 0.5) * 2.5,
+            rotOffset: Math.random() * 360,
+            radii: Array.from({ length: 8 }, () => 30 + Math.random() * 30),
+            radiiSpeed: Array.from({ length: 8 }, () => 0.5 + Math.random() * 1.2),
+            radiiPhase: Array.from({ length: 8 }, () => Math.random() * Math.PI * 2),
+        }));
+        blobSmoothed = new Float32Array(blobs.length);
+        blobPrevEnergy = new Float32Array(blobs.length);
+    }
+
+    function seedReactiveBlobs() {
+        const mobile = isMobile();
+        blobs.forEach((blob, index) => {
+            const size = blobBaseSizes[index] || (mobile ? 120 + Math.random() * 120 : 140 + Math.random() * 220);
+            blobBaseSizes[index] = size;
+            blob.style.width = `${size}px`;
+            blob.style.height = `${size}px`;
+            blob.style.opacity = '0.45';
+            blob.style.transform = 'translate(-50%, -50%) scale(1)';
+        });
+    }
+
+    function stopReactiveLava() {
+        if (reactiveRafId) {
+            cancelAnimationFrame(reactiveRafId);
+            reactiveRafId = null;
+        }
+        blobPhases = null;
+        blobSmoothed = null;
+        blobPrevEnergy = null;
+    }
+
+    function startReactiveLava() {
+        stopReactiveLava();
+        killLavaTweens();
+        updateLavaColors();
+        ensureAudioCtx();
+        seedReactiveBlobs();
+        initBlobPhases();
+
+        const n = freqData.length;
+        const e = Math.floor(n * 0.04);
+        const iMid = Math.floor(n * 0.12);
+        const r = Math.floor(n * 0.4);
+        const bands = blobs.map((_, index) => {
+            if (index < 2) return { lo: 0, hi: iMid };
+            if (index < 4) return { lo: e, hi: r };
+            if (index < 6) return { lo: iMid, hi: n };
+            return { lo: 0, hi: n };
+        });
+        let time = 0;
+        let prevOverall = 0;
+
+        const tick = () => {
+            if (!isPlaying || !analyser || reactiveMode === 'off') return;
+            analyser.getByteFrequencyData(freqData);
+            time += 0.018;
+
+            let low = 0, lowMid = 0, mid = 0, high = 0;
+            for (let j = 0; j < e; j++) low += freqData[j];
+            for (let j = e; j < iMid; j++) lowMid += freqData[j];
+            for (let j = iMid; j < r; j++) mid += freqData[j];
+            for (let j = r; j < n; j++) high += freqData[j];
+
+            low = low / (e || 1) / 255;
+            lowMid = lowMid / (iMid - e || 1) / 255;
+            mid = mid / (r - iMid || 1) / 255;
+            high = high / (n - r || 1) / 255;
+
+            const overall = low * 0.3 + lowMid * 0.3 + mid * 0.2 + high * 0.2;
+            const rise = Math.max(0, overall - prevOverall);
+            const threshold = reactiveMode === 'intense' ? 0.02 : 0.06;
+            const gain = reactiveMode === 'intense' ? 7 : 4;
+            const globalJolt = rise > threshold ? rise * gain : 0;
+            prevOverall = overall;
+
+            blobs.forEach((blob, index) => {
+                const band = bands[index];
+                let energy = 0;
+                for (let j = band.lo; j < band.hi; j++) energy += freqData[j];
+                energy = energy / (band.hi - band.lo || 1) / 255;
+
+                const softMode = reactiveMode === 'soft';
+                const smoothUp = softMode ? 0.2 : 0.88;
+                const smoothDown = softMode ? 0.04 : 0.18;
+                const smooth = energy > blobSmoothed[index] ? smoothUp : smoothDown;
+                blobSmoothed[index] += (energy - blobSmoothed[index]) * smooth;
+
+                const smoothed = blobSmoothed[index];
+                const localRise = Math.max(0, smoothed - blobPrevEnergy[index]);
+                const localJolt = localRise > (softMode ? 0.03 : 0.008) ? localRise * (softMode ? 1.5 : 8) : 0;
+                blobPrevEnergy[index] = smoothed;
+
+                const prev = blobSmoothed[(index - 1 + blobs.length) % blobs.length];
+                const next = blobSmoothed[(index + 1) % blobs.length];
+                const blended = smoothed * 0.55 + prev * 0.22 + next * 0.23;
+                const isLowBlob = index < 3;
+                const bassDrive = isLowBlob ? (low + lowMid) * 0.5 : lowMid * 0.3;
+                const highDrive = isLowBlob ? high * 0.35 : (high + mid) * 0.6;
+                const phase = blobPhases[index];
+                const baseSize = blobBaseSizes[index] || 150;
+
+                let scaleX, scaleY, rotation, borderRadius, width, height, moveX, moveY, opacity;
+                if (softMode) {
+                    const waveX = Math.sin(time * phase.speedX * 0.7 + phase.phaseX);
+                    const waveY = Math.sin(time * phase.speedY * 0.5 + phase.phaseY);
+                    scaleX = 1 + blended * 0.2 + waveX * 0.05 + overall * 0.08 + high * 0.15;
+                    scaleY = 1 + blended * 0.2 + waveY * 0.05 + overall * 0.06 + high * 0.12;
+                    rotation = phase.rotOffset + time * phase.rotSpeed * 5 + blended * 10 * Math.sin(time * 1.2 + index) + overall * 5 * Math.cos(time * 0.8 + index * 1.5);
+                    const highWarp = high * 70 + mid * 25;
+                    const shapeWarp = 6 + blended * 8;
+                    const radii = phase.radii.map((base, ri) => {
+                        const wave = Math.sin(time * phase.radiiSpeed[ri] * 0.8 + phase.radiiPhase[ri]);
+                        const bite = Math.sin(time * 1.5 + ri * Math.PI * 0.25 + index) * highWarp;
+                        return Math.max(8, base + wave * shapeWarp - bite);
+                    });
+                    borderRadius = `${radii[0]}% ${radii[1]}% ${radii[2]}% ${radii[3]}% / ${radii[4]}% ${radii[5]}% ${radii[6]}% ${radii[7]}%`;
+                    const sizeWave = Math.sin(time * 0.4 + index * 1.1) * baseSize * 0.04;
+                    width = baseSize + blended * baseSize * 0.12 + sizeWave + overall * baseSize * 0.06;
+                    height = baseSize + blended * baseSize * 0.12 - sizeWave * 0.3 + overall * baseSize * 0.05;
+                    moveX = Math.sin(time * phase.speedX * 0.5 + phase.phaseX) * (20 + blended * 30);
+                    moveY = Math.cos(time * phase.speedY * 0.5 + phase.phaseY) * (15 + blended * 25);
+                    opacity = 0.35 + blended * 0.25 + Math.sin(time * 0.5 + index * 0.9) * 0.04 + overall * 0.08;
+                } else {
+                    const widthBase = baseSize * 0.6;
+                    const lowGain = isLowBlob ? 1.6 : 1;
+                    const globalPulse = globalJolt * (isLowBlob ? 3.5 : 1.5);
+                    const localPulse = localJolt * 3.5;
+                    const waveX = Math.sin(time * phase.speedX * 3.5 + phase.phaseX);
+                    const waveY = Math.sin(time * phase.speedY * 2.8 + phase.phaseY + 1.5);
+                    const energyLift = energy * 0.8;
+                    scaleX = 1 + blended * lowGain + globalPulse + localPulse + energyLift + waveX * highDrive * 0.9 + overall * 0.35;
+                    scaleY = 1 + blended * lowGain + globalPulse * 0.7 + localPulse * 0.9 + energyLift * 0.8 + waveY * highDrive * 0.75 + overall * 0.3;
+                    rotation = phase.rotOffset + time * phase.rotSpeed * 35 + blended * 80 * Math.sin(time * 4.5 + index) + globalJolt * 180 * Math.sin(time * 10 + index * 1.5) + highDrive * 90 * Math.cos(time * 7 + index * 2.2) + localJolt * 60 * Math.sin(time * 15 + index) + overall * 30 * Math.cos(time * 2.5 + index * 2);
+                    const shapeWarp = 25 + blended * 40 + globalJolt * 35 + localJolt * 20;
+                    const radii = phase.radii.map((base, ri) => {
+                        const wave = Math.sin(time * phase.radiiSpeed[ri] * 3.5 + phase.radiiPhase[ri]);
+                        const cross = Math.cos(time * phase.radiiSpeed[ri] * 2 + phase.radiiPhase[ri] * 1.6);
+                        const spike = Math.sin(time * phase.radiiSpeed[ri] * 5 + ri * 0.8);
+                        return base + wave * shapeWarp + cross * shapeWarp * 0.5 + spike * highDrive * 50 + energyLift * 15;
+                    });
+                    borderRadius = `${radii[0]}% ${radii[1]}% ${radii[2]}% ${radii[3]}% / ${radii[4]}% ${radii[5]}% ${radii[6]}% ${radii[7]}%`;
+                    const sizePulse = blended * widthBase * 0.6 + globalJolt * widthBase * 0.8 + localJolt * widthBase * 0.4;
+                    const sizeWave = Math.sin(time * 1 + index * 1.2) * widthBase * 0.1;
+                    const trebleWave = highDrive * widthBase * 0.3 * Math.sin(time * 9 + index * 2);
+                    width = widthBase + sizePulse + sizeWave + trebleWave + overall * widthBase * 0.3;
+                    height = widthBase + sizePulse - sizeWave * 0.5 + trebleWave * 0.7 + overall * widthBase * 0.25;
+                    const moveAmount = bassDrive * 180 + globalJolt * 300 + localJolt * 100;
+                    const trebleMove = highDrive * 80 * Math.sin(time * 18 + index * 3.7);
+                    const midMove = mid * 40 * Math.cos(time * 14 + index * 2.1);
+                    moveX = Math.sin(time * phase.speedX * 2.5 + phase.phaseX) * moveAmount + trebleMove + midMove;
+                    moveY = Math.cos(time * phase.speedY * 2.5 + phase.phaseY) * moveAmount * 0.8 + trebleMove * 0.6 + midMove * 0.7;
+                    opacity = 0.25 + blended * 0.6 + globalJolt * 0.4 + localJolt * 0.2 + Math.sin(time * 1.8 + index * 1.1) * 0.08 + overall * 0.25;
+                }
+
+                blob.style.transform = `translate(calc(-50% + ${moveX.toFixed(1)}px), calc(-50% + ${moveY.toFixed(1)}px)) scale(${scaleX.toFixed(3)}, ${scaleY.toFixed(3)}) rotate(${rotation.toFixed(1)}deg)`;
+                blob.style.opacity = Math.min(opacity, 0.9);
+                blob.style.borderRadius = borderRadius;
+                blob.style.width = `${width}px`;
+                blob.style.height = `${height}px`;
+            });
+
+            reactiveRafId = requestAnimationFrame(tick);
+        };
+
+        reactiveRafId = requestAnimationFrame(tick);
+    }
+
+    function updateLavaPlayback() {
+        if (!isPlaying) {
+            hideLava();
+            return;
+        }
+        if (reactiveMode === 'off') showLava();
+        else startReactiveLava();
+    }
+
+    setupReactiveMode();
+    setupLava();
+    // ============================================================
+    //  BUTTONS
+    // ============================================================
+    document.getElementById('prev').addEventListener('click', goPrev);
+    document.getElementById('next').addEventListener('click', goNext);
+    document.getElementById('play').addEventListener('click', togglePlay);
+    document.getElementById('add-track-btn').addEventListener('click', openSearch);
+
+    // ============================================================
+    //  KEYBOARD
+    // ============================================================
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        switch(e.key) {
+            case 'ArrowLeft':  e.preventDefault(); goPrev(); break;
+            case 'ArrowRight': e.preventDefault(); goNext(); break;
+            case ' ':          e.preventDefault(); togglePlay(); break;
+            case 'Escape':     closePopup(); closeSearch(); break;
+        }
+    });
+
+    // ============================================================
+    //  TOAST
+    // ============================================================
+    let toastTimer;
+    function showToast(msg) {
+        const el = toastEl;
+        el.innerHTML = msg;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+    }
+    function showToastWithCover(cover, msg) {
+        const imgTag = cover ? `<img class="toast-cover" src="${cover}" alt="">` : '';
+        showToast(imgTag + msg);
+    }
+
+    // ============================================================
+    //  UTIL
+    // ============================================================
+    function isMobile() { return window.matchMedia('(max-width: 600px)').matches; }
+    let lastMobile = isMobile();
+    window.addEventListener('resize', () => {
+        const nowMobile = isMobile();
+        if (nowMobile !== lastMobile) {
+            lastMobile = nowMobile;
+            renderCards();
+            updateContentTransform();
+        }
+    });
+
+    // ============================================================
+    //  BOOT
+    // ============================================================
+    init().then(() => {
+        updateVipStatus();
+        console.log('%c🎵 6槽音乐播放器已就绪 %c| %c网易云API %c| %c100%还原 %c| %cVIP:%s',
+            'color:#f5e6d0;font-size:16px;', '', 'color:#f5a623;', '', 'color:#8bc34a;', '',
+            'color:#f5a623;', vipCookie ? 'ON' : 'OFF');
+    });
+    </script>
+</body>
+</html>

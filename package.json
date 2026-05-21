@@ -1,0 +1,17 @@
+{
+  "name": "music",
+  "version": "1.0.0",
+  "description": "Animated NetEase Cloud Music player prepared for Vercel deployment.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "NeteaseCloudMusicApi": "^4.32.0"
+  }
+}
