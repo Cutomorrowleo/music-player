@@ -16,6 +16,10 @@
             --panel: #161414;
             --border: rgba(245,230,208,0.15);
             --border-light: rgba(245,230,208,0.06);
+            --track-accent: #FDD94F;
+            --track-accent-soft: rgba(253,217,79,0.14);
+            --track-accent-glow: rgba(253,217,79,0.28);
+            --track-accent-line: rgba(253,217,79,0.56);
             --font-heading: 'Special Gothic Expanded One', sans-serif;
             --font-serif: 'Abril Fatface', serif;
         }
@@ -93,7 +97,7 @@
         h1 {
             font-size: clamp(1.2rem, 3vw, 1.8rem);
             letter-spacing: 0.05em; opacity: 0.6;
-            margin: 0 0 10px; text-align: center;
+            margin: 0 0 24px; text-align: center;
         }
         #track-title {
             font-size: clamp(1.6rem, 5vw, 2.8rem);
@@ -106,8 +110,8 @@
             color: rgba(245,230,208,0.35); margin: -4px 0 10px;
         }
         .slot-indicator {
-            display: flex; gap: 6px; justify-content: center;
-            margin: 0 0 8px;
+            display: none; gap: 6px; justify-content: center;
+            margin: 0;
         }
         .slot-dot {
             width: 6px; height: 6px; border-radius: 50%;
@@ -128,7 +132,9 @@
             margin: 0 auto; color: #fff;
             perspective: 1200px; transform-origin: center;
             cursor: grab;
+            transition: transform 0.9s ease;
         }
+        .icon-cards.playing-focus { transform: scale(1.04); }
         .icon-cards:active { cursor: grabbing; }
         .icon-cards__content {
             position: absolute; width: 100%; height: 100%;
@@ -153,7 +159,8 @@
         }
         .icon-cards__item {
             transition: transform 0.55s cubic-bezier(0.25, 0.1, 0.25, 1),
-                        box-shadow 0.55s ease;
+                        box-shadow 0.55s ease,
+                        opacity 0.55s ease;
         }
         .icon-cards__item.is-active-card {
             box-shadow: 0 12px 40px rgba(0,0,0,0.35);
@@ -199,6 +206,10 @@
         .btn-player:hover .btn-fill { transform: translate(-50%, -50%) scale(0.45); }
         .btn-player:hover svg { color: #161414; }
         .btn-player:active .btn-fill { transform: translate(-50%, -50%) scale(0.55); transition: transform 0.15s; }
+        .button-effects-ready .btn-fill { transition: none; }
+        .button-effects-ready .btn-player:hover .btn-fill,
+        .button-effects-ready .btn-player:active .btn-fill { transform: translate(-50%, -50%) scale(0); }
+        .button-effects-ready .btn-player:hover svg { color: currentColor; }
         .btn-prev, .btn-next { width: 50px; height: 50px; border-radius: 50%; }
         .btn-play { width: 60px; height: 60px; border-radius: 50%; border-color: rgba(245,230,208,0.28); }
 
@@ -207,13 +218,17 @@
             position: fixed; bottom: 24px; left: 24px;
             display: flex; align-items: flex-end; gap: 2.5px;
             height: 32px; z-index: 100; opacity: 0;
-            transition: opacity 0.6s ease; pointer-events: none;
+            filter: drop-shadow(0 0 8px var(--track-accent-glow));
+            transition: opacity 0.6s ease, filter 0.8s ease; pointer-events: none;
         }
-        .sound-wave.active { opacity: 1; }
+        .sound-wave.active { opacity: 0.92; }
         .sound-wave span {
             display: block; width: 2.5px;
-            background: rgba(245,230,208,0.35); border-radius: 2px;
+            background: linear-gradient(180deg, var(--cream), var(--track-accent));
+            border-radius: 2px;
+            box-shadow: 0 0 10px var(--track-accent-glow);
             animation: soundBar 0.8s ease-in-out infinite alternate;
+            transition: background 0.8s ease, box-shadow 0.8s ease;
         }
         .sound-wave span:nth-child(1){height:6px;animation-delay:0s;animation-duration:.7s}
         .sound-wave span:nth-child(2){height:14px;animation-delay:.05s;animation-duration:.55s}
@@ -236,52 +251,78 @@
         .reactive-toggle {
             position: fixed; top: 20px; right: 20px;
             width: 42px; height: 42px; border-radius: 50%;
-            background: rgba(245,230,208,0.04);
-            border: 1px solid rgba(245,230,208,0.08);
-            color: rgba(245,230,208,0.3); cursor: pointer;
+            background: rgba(22,20,20,0.38);
+            border: 1px solid var(--track-accent-line);
+            color: var(--track-accent); cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             padding: 0; z-index: 100;
-            transition: background 0.4s, color 0.4s, border-color 0.4s;
+            box-shadow: inset 0 0 16px rgba(245,230,208,0.035), 0 0 24px var(--track-accent-glow);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            transition: background 0.4s, color 0.4s, border-color 0.4s, box-shadow 0.8s;
         }
-        .reactive-toggle:hover { background: rgba(245,230,208,0.08); color: rgba(245,230,208,0.55); border-color: rgba(245,230,208,0.15); }
-        .reactive-toggle.active { background: rgba(245,230,208,0.1); color: var(--cream); border-color: rgba(245,230,208,0.25); }
-        .reactive-toggle.active-soft { background: rgba(245,230,208,0.06); color: rgba(245,230,208,0.6); border-color: rgba(245,230,208,0.18); }
+        .reactive-toggle svg, .vip-btn svg, .add-track-btn svg {
+            filter: drop-shadow(0 0 8px var(--track-accent-glow));
+            transition: filter 0.8s ease;
+        }
+        .reactive-toggle:hover {
+            background: var(--track-accent-soft); color: var(--cream);
+            border-color: var(--track-accent-line);
+            box-shadow: inset 0 0 18px rgba(245,230,208,0.05), 0 0 24px var(--track-accent-glow);
+        }
+        .reactive-toggle.active {
+            background: var(--track-accent-soft); color: var(--cream);
+            border-color: var(--track-accent-line);
+            box-shadow: inset 0 0 18px rgba(245,230,208,0.05), 0 0 28px var(--track-accent-glow);
+        }
+        .reactive-toggle.active-soft {
+            color: var(--cream); border-color: var(--track-accent-line);
+            box-shadow: inset 0 0 16px rgba(245,230,208,0.04), 0 0 22px var(--track-accent-glow);
+        }
         .reactive-indicator {
-            position: fixed; top: 20px; right: 72px;
+            position: fixed; top: 32px; right: 76px;
             font-family: var(--font-heading);
-            font-size: 0.55rem; letter-spacing: 0.18em; text-transform: uppercase;
-            color: var(--cream); background: rgba(245,230,208,0.06);
-            border: 1px solid rgba(245,230,208,0.1); border-radius: 20px;
-            padding: 4px 12px; z-index: 100;
-            opacity: 0; transform: translateY(-8px); pointer-events: none;
-            transition: opacity 0.3s, transform 0.3s;
+            font-size: 0.55rem; letter-spacing: 0.16em; text-transform: uppercase;
+            color: var(--cream);
+            text-shadow: 0 0 14px var(--track-accent-glow);
+            white-space: nowrap; z-index: 100;
+            opacity: 0; transform: translateX(6px); pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s, color 0.8s, text-shadow 0.8s;
         }
-        .reactive-indicator.show { opacity: 1; transform: translateY(0); }
+        .reactive-indicator.show { opacity: 1; transform: translateX(0); }
 
         /* ===== VIP Button & Modal ===== */
         .vip-btn {
-            position: fixed; top: 20px; right: 100px;
+            position: fixed; top: 20px; left: 20px;
             width: 42px; height: 42px; border-radius: 50%;
-            background: rgba(245,230,208,0.04);
-            border: 1px solid rgba(245,230,208,0.08);
-            color: rgba(245,230,208,0.3); cursor: pointer;
+            background: rgba(22,20,20,0.38);
+            border: 1px solid var(--track-accent-line);
+            color: var(--track-accent); cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             padding: 0; z-index: 100;
-            transition: background 0.4s, color 0.4s, border-color 0.4s;
+            box-shadow: inset 0 0 16px rgba(245,230,208,0.035), 0 0 24px var(--track-accent-glow);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            transition: background 0.4s, color 0.4s, border-color 0.4s, box-shadow 0.8s;
         }
-        .vip-btn:hover { background: rgba(245,230,208,0.08); color: rgba(245,230,208,0.55); border-color: rgba(245,230,208,0.15); }
-        .vip-btn.vip-active { background: rgba(245,166,35,0.15); color: #f5a623; border-color: rgba(245,166,35,0.3); }
+        .vip-btn:hover {
+            background: var(--track-accent-soft); color: var(--cream);
+            border-color: var(--track-accent-line);
+            box-shadow: inset 0 0 18px rgba(245,230,208,0.05), 0 0 26px var(--track-accent-glow);
+        }
+        .vip-btn.vip-active {
+            background: var(--track-accent-soft); color: var(--track-accent);
+            border-color: var(--track-accent-line);
+            box-shadow: inset 0 0 18px rgba(245,230,208,0.05), 0 0 30px var(--track-accent-glow);
+        }
         .vip-indicator {
-            position: fixed; top: 20px; right: 150px;
+            position: fixed; top: 32px; left: 74px;
             font-family: var(--font-heading); font-size: 0.5rem;
             letter-spacing: 0.2em; text-transform: uppercase;
-            color: #f5a623; background: rgba(245,166,35,0.1);
-            border: 1px solid rgba(245,166,35,0.2); border-radius: 20px;
-            padding: 3px 10px; z-index: 100;
-            opacity: 0; transform: translateY(-8px); pointer-events: none;
-            transition: opacity 0.3s, transform 0.3s;
+            color: var(--track-accent); z-index: 100;
+            text-shadow: 0 0 14px var(--track-accent-glow);
+            opacity: 0; transform: translateX(-6px); pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s, color 0.8s, text-shadow 0.8s;
         }
-        .vip-indicator.show { opacity: 1; transform: translateY(0); }
+        .vip-indicator.show { opacity: 1; transform: translateX(0); }
         .vip-overlay {
             position: fixed; top: 0; right: 0; bottom: 0; left: 0;
             background: transparent;
@@ -342,12 +383,18 @@
         .add-track-btn {
             position: fixed; bottom: 24px; right: 24px;
             width: 48px; height: 48px; border-radius: 50%;
-            background: rgba(245,230,208,0.08);
-            border: 1px solid var(--border); color: var(--cream);
+            background: rgba(22,20,20,0.4);
+            border: 1px solid var(--track-accent-line); color: var(--cream);
             cursor: pointer; display: flex; align-items: center; justify-content: center;
-            z-index: 100; transition: background 0.3s, border-color 0.3s, transform 0.2s;
+            box-shadow: inset 0 0 18px rgba(245,230,208,0.03), 0 0 26px var(--track-accent-glow);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            z-index: 100; transition: background 0.3s, border-color 0.8s, box-shadow 0.8s, transform 0.2s;
         }
-        .add-track-btn:hover { background: rgba(245,230,208,0.15); border-color: rgba(245,230,208,0.35); transform: scale(1.08); }
+        .add-track-btn:hover {
+            background: var(--track-accent-soft); border-color: var(--track-accent);
+            box-shadow: inset 0 0 18px rgba(245,230,208,0.06), 0 0 34px var(--track-accent-glow);
+            transform: scale(1.08);
+        }
 
         /* ===== Popup Overlay ===== */
         .popup-overlay {
@@ -911,12 +958,13 @@
 
     function renderCards() {
         contentEl.innerHTML = slots.map((t, i) => {
-            const s = isPlaying ? (i === currentIdx ? 1.06 : 0.93) : 1;
+            const s = isPlaying ? (i === currentIdx ? 1.12 : 0.85) : 1;
+            const opacity = isPlaying ? (i === currentIdx ? 1 : 0.35) : 1;
             const act = (i === currentIdx) ? ' is-active-card' : '';
             const ply = isPlaying ? ' playing' : '';
             return `
             <div class="icon-cards__item${act}${ply}" data-index="${i}"
-                 style="${cardTransform(i, s)}; background-image: url('${t.cover || ''}'); background-size: cover; background-position: center;">
+                 style="${cardTransform(i, s)}; opacity:${opacity}; background-image: url('${t.cover || ''}'); background-size: cover; background-position: center;">
                 ${!t.cover ? `<div style="width:100%;height:100%;background:linear-gradient(135deg, ${gradientColor(i)})"></div>` : ''}
                 <div class="card-glow"></div>
             </div>`;
@@ -927,8 +975,9 @@
     function updateCardScales() {
         const cards = contentEl.querySelectorAll('.icon-cards__item');
         cards.forEach((card, i) => {
-            const s = isPlaying ? (i === currentIdx ? 1.06 : 0.93) : 1;
+            const s = isPlaying ? (i === currentIdx ? 1.12 : 0.85) : 1;
             card.style.transform = cardTransform(i, s).replace('transform: ', '');
+            card.style.opacity = isPlaying ? (i === currentIdx ? '1' : '0.35') : '1';
             if (isPlaying) {
                 card.classList.add('playing');
                 if (i === currentIdx) card.classList.add('is-active-card');
@@ -1050,6 +1099,7 @@
     let dragStartX   = 0;
     let dragStartY   = 0;
     let dragStartIdx = 0;
+    let dragPreviewIdx = 0;
 
     iconCards.addEventListener('mousedown', onDragStart);
     iconCards.addEventListener('touchstart', onDragStart, { passive: false });
@@ -1063,6 +1113,7 @@
         const pt = e.touches ? e.touches[0] : e;
         dragStartX = pt.clientX; dragStartY = pt.clientY;
         dragStartIdx = currentIdx;
+        dragPreviewIdx = currentIdx;
         contentEl.style.transition = 'none';
         e.preventDefault?.();
     }
@@ -1075,9 +1126,9 @@
         if (Math.abs(dx) > 6 || Math.abs(dy) > 6) wasDragging = true;
         const delta = isMobile() ? dy * 0.1 : dx * 0.1;
         const offset = delta / 60;
-        currentIdx = dragStartIdx - offset;
+        dragPreviewIdx = dragStartIdx - offset;
         // Clamp to nearest valid rotation
-        const angle = currentIdx * 60;
+        const angle = dragPreviewIdx * 60;
         const tz = isMobile() ? '50vw' : '38vw';
         const axis = isMobile() ? 'rotateX' : 'rotateY';
         const sign = isMobile() ? 1 : -1;
@@ -1088,8 +1139,7 @@
         if (!isDragging) return;
         isDragging = false;
         contentEl.style.transition = 'transform 0.55s cubic-bezier(0.25, 0.1, 0.25, 1)';
-        currentIdx = Math.round(currentIdx);
-        goTo(currentIdx);
+        goTo(Math.round(dragPreviewIdx));
         setTimeout(() => { wasDragging = false; }, 50);
     }
 
@@ -1140,6 +1190,7 @@
         playIcon.style.display = p ? 'none' : '';
         pauseIcon.style.display = p ? '' : 'none';
         soundWave.classList.toggle('active', p);
+        iconCards.classList.toggle('playing-focus', p);
         updateCardScales();
         updateLavaPlayback();
     }
@@ -1360,11 +1411,27 @@
         return slots[slotIndex]?.color || SLOT_COLORS[slotIndex] || DEFAULT_BLOB_COLOR;
     }
 
+    function getAccentAlpha(color, alpha) {
+        const hex = color.replace('#', '');
+        if (!/^[\da-f]{6}$/i.test(hex)) return `rgba(245,230,208,${alpha})`;
+        const rgb = hex.match(/.{2}/g).map(value => parseInt(value, 16));
+        return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+    }
+
+    function updateTrackAccent(color) {
+        const root = document.documentElement;
+        root.style.setProperty('--track-accent', color);
+        root.style.setProperty('--track-accent-soft', getAccentAlpha(color, 0.14));
+        root.style.setProperty('--track-accent-glow', getAccentAlpha(color, 0.28));
+        root.style.setProperty('--track-accent-line', getAccentAlpha(color, 0.56));
+    }
+
     function setupLava() {
         lavaBg.innerHTML = '';
         blobs.length = 0;
         blobBaseSizes = [];
         const mobile = isMobile();
+        updateTrackAccent(getTrackColor());
 
         for (let i = 0; i < BLOB_COUNT; i++) {
             const blob = document.createElement('div');
@@ -1388,6 +1455,7 @@
 
     function updateLavaColors() {
         const color = getTrackColor();
+        updateTrackAccent(color);
         blobs.forEach(blob => {
             if (gsapReady()) {
                 gsap.to(blob, { backgroundColor: color, duration: 1.2, ease: 'power2.out' });
@@ -1696,6 +1764,55 @@
     // ============================================================
     //  BUTTONS
     // ============================================================
+    function setupButtonEffects() {
+        if (!gsapReady()) return;
+
+        document.documentElement.classList.add('button-effects-ready');
+        document.querySelectorAll('.btn-player').forEach(button => {
+            const fill = button.querySelector('.btn-fill');
+            const icons = button.querySelectorAll('svg');
+            let enterTween;
+            let leaveTween;
+
+            button.addEventListener('mouseenter', (event) => {
+                if (leaveTween) leaveTween.kill();
+                const rect = button.getBoundingClientRect();
+                gsap.set(fill, {
+                    left: event.clientX - rect.left,
+                    top: event.clientY - rect.top,
+                    xPercent: -50,
+                    yPercent: -50,
+                    scale: 0,
+                });
+                enterTween = gsap.to(fill, { scale: 1, duration: 0.55, ease: 'power3.out' });
+                gsap.to(icons, { color: '#161414', duration: 0.35, ease: 'power1.out' });
+            });
+
+            button.addEventListener('mouseleave', (event) => {
+                if (enterTween) enterTween.kill();
+                const rect = button.getBoundingClientRect();
+                gsap.set(fill, {
+                    left: event.clientX - rect.left,
+                    top: event.clientY - rect.top,
+                    xPercent: -50,
+                    yPercent: -50,
+                });
+                leaveTween = gsap.to(fill, { scale: 0, duration: 0.45, ease: 'power3.in' });
+                gsap.to(icons, { color: '#f5e6d0', duration: 0.35, ease: 'power1.in' });
+                gsap.to(button, { scale: 1, duration: 0.3, ease: 'power2.out', overwrite: 'auto' });
+            });
+
+            button.addEventListener('mousedown', () => {
+                gsap.to(button, { scale: 0.9, duration: 0.12, ease: 'power2.out' });
+            });
+
+            button.addEventListener('mouseup', () => {
+                gsap.to(button, { scale: 1, duration: 0.5, ease: 'elastic.out(1, 0.35)' });
+            });
+        });
+    }
+
+    setupButtonEffects();
     document.getElementById('prev').addEventListener('click', goPrev);
     document.getElementById('next').addEventListener('click', goNext);
     document.getElementById('play').addEventListener('click', togglePlay);
