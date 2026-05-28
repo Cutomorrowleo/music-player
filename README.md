@@ -23,6 +23,7 @@ Import the GitHub repository in Vercel and deploy with the default settings.
 
 ## Notes
 
+- `song.html` is the current player entry file.
 - `mysong.html` is kept as the first final version snapshot.
 - VIP cookies are stored only in the user's browser local storage.
 - Do not commit `server.log`; it can contain request query data.
