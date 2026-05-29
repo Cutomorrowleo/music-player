@@ -3,6 +3,8 @@ _backup/
 .claude/
 NeteaseCloudMusicApi/
 server.log
+server*.log
+backup-before-*/
 _original.*
 _search_test.json
 .vercel/

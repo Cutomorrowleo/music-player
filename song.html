@@ -152,6 +152,7 @@
             overflow: hidden;
             -webkit-user-select: none; user-select: none;
             background-size: cover; background-position: center;
+            pointer-events: none;
         }
         .icon-cards__item img {
             width: 100%; height: 100%; object-fit: cover; border-radius: 10px;
@@ -164,6 +165,8 @@
         }
         .icon-cards__item.is-active-card {
             box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+            z-index: 6;
+            pointer-events: auto;
         }
         .icon-cards__item.is-active-card.playing {
             box-shadow: 0 20px 56px rgba(0,0,0,0.55);
@@ -212,6 +215,189 @@
         .button-effects-ready .btn-player:hover svg { color: currentColor; }
         .btn-prev, .btn-next { width: 50px; height: 50px; border-radius: 50%; }
         .btn-play { width: 60px; height: 60px; border-radius: 50%; border-color: rgba(245,230,208,0.28); }
+
+        /* ===== Lyrics Detail Mode ===== */
+        .player-progress {
+            width: min(520px, 52vw);
+            margin: 0 auto 10px;
+            opacity: 0;
+            transform: translateY(-6px);
+            pointer-events: none;
+            transition: opacity 0.45s ease, transform 0.45s ease;
+            z-index: 55;
+        }
+        .progress-times {
+            display: flex; justify-content: space-between;
+            font-family: system-ui, sans-serif;
+            font-size: 0.62rem; letter-spacing: 0.08em;
+            color: rgba(245,230,208,0.48);
+            margin-bottom: 8px;
+        }
+        .progress-range {
+            display: block;
+            width: 100%; height: 6px;
+            appearance: none; -webkit-appearance: none;
+            background: linear-gradient(90deg, var(--track-accent) var(--progress, 0%), rgba(245,230,208,0.14) var(--progress, 0%));
+            border-radius: 999px;
+            outline: none; cursor: pointer;
+            box-shadow: 0 0 18px var(--track-accent-glow);
+        }
+        .progress-range::-webkit-slider-thumb {
+            appearance: none; -webkit-appearance: none;
+            width: 15px; height: 15px; border-radius: 50%;
+            background: var(--cream);
+            border: 2px solid var(--track-accent);
+            box-shadow: 0 0 18px var(--track-accent-glow);
+        }
+        .progress-range::-moz-range-thumb {
+            width: 15px; height: 15px; border-radius: 50%;
+            background: var(--cream);
+            border: 2px solid var(--track-accent);
+            box-shadow: 0 0 18px var(--track-accent-glow);
+        }
+        .lyrics-panel {
+            position: fixed;
+            top: var(--lyrics-panel-top, 16vh); right: 7vw;
+            width: min(560px, 34vw);
+            height: 66vh;
+            z-index: 54;
+            opacity: 0;
+            transform: translateX(24px);
+            pointer-events: none;
+            transition: opacity 0.55s ease, transform 0.55s ease;
+            color: var(--cream);
+            overflow: visible;
+            background: transparent;
+        }
+        .lyrics-panel::before,
+        .lyrics-panel::after {
+            display: none;
+        }
+        .lyrics-list {
+            height: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding: 0 44px 96px 12px;
+            scroll-behavior: smooth;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--track-accent) transparent;
+        }
+        .lyrics-list::-webkit-scrollbar { width: 5px; }
+        .lyrics-list::-webkit-scrollbar-track { background: transparent; }
+        .lyrics-list::-webkit-scrollbar-thumb {
+            background: var(--track-accent);
+            border-radius: 999px;
+            box-shadow: 0 0 12px var(--track-accent-glow);
+        }
+        .lyric-pair {
+            min-height: 58px;
+            margin-bottom: 20px;
+            opacity: 0.58;
+            filter: none;
+            transition: opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease;
+        }
+        .lyric-original {
+            font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+            font-weight: 800;
+            font-size: clamp(1.06rem, 1.48vw, 1.46rem);
+            line-height: 1.38;
+            letter-spacing: 0.02em;
+            color: rgba(245,230,208,0.78);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.72), 0 0 16px rgba(0,0,0,0.34);
+        }
+        .lyric-translation {
+            margin-top: 9px;
+            font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+            font-size: 0.86rem;
+            line-height: 1.5;
+            color: rgba(245,230,208,0.58);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+        }
+        .lyric-pair.single-line {
+            min-height: 48px;
+            margin-bottom: 24px;
+        }
+        .lyric-pair.single-line .lyric-translation {
+            display: none;
+        }
+        .lyric-pair.active {
+            opacity: 1;
+            filter: none;
+            transform: scale(1.045);
+            transform-origin: left center;
+        }
+        .lyric-pair.active .lyric-original {
+            color: var(--track-accent);
+            font-size: clamp(1.24rem, 1.9vw, 1.86rem);
+            text-shadow: 0 2px 3px rgba(0,0,0,0.82), 0 0 18px var(--track-accent-glow), 0 0 32px var(--track-accent-glow);
+        }
+        .lyric-pair.active .lyric-translation {
+            color: rgba(245,230,208,0.86);
+            text-shadow: 0 2px 3px rgba(0,0,0,0.82), 0 0 14px var(--track-accent-glow);
+        }
+        body.lyrics-mode {
+            --lyrics-panel-top: 16vh;
+            --lyrics-left-top: var(--lyrics-panel-top);
+            --lyrics-art-top: calc(var(--lyrics-left-top) + clamp(58px, 9vh, 74px));
+            padding-right: 42vw;
+            align-items: center;
+        }
+        body.lyrics-mode h1 {
+            position: fixed; top: var(--lyrics-left-top); left: 0; right: 42vw;
+            margin: 0; z-index: 50;
+        }
+        body.lyrics-mode .icon-cards {
+            position: fixed;
+            top: var(--lyrics-art-top); left: 0; right: 42vw;
+            width: 58vw; height: 34vh;
+            max-width: none; max-height: none;
+            margin: 0 auto;
+            perspective: none;
+            z-index: 48;
+            cursor: default;
+        }
+        body.lyrics-mode .icon-cards.playing-focus { transform: none; }
+        body.lyrics-mode .icon-cards__content {
+            transition: transform 0.55s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        body.lyrics-mode .icon-cards__item {
+            width: 23vw; height: 23vw;
+            max-width: 310px; max-height: 310px;
+        }
+        body.lyrics-mode .icon-cards__item:not(.is-active-card) {
+            display: none;
+        }
+        body.lyrics-mode #track-title {
+            position: fixed;
+            top: calc(var(--lyrics-art-top) + min(23vw, 310px) + 50px);
+            left: 0; right: 42vw;
+            width: auto;
+            margin: 0 auto;
+            z-index: 50;
+        }
+        body.lyrics-mode .gapgutton {
+            position: fixed;
+            top: calc(var(--lyrics-art-top) + min(23vw, 310px) + 116px);
+            left: 0; right: 42vw;
+            margin: 0;
+            z-index: 55;
+        }
+        body.lyrics-mode .player-progress {
+            position: fixed;
+            top: calc(var(--lyrics-art-top) + min(23vw, 310px) + 176px);
+            left: 8vw; right: 50vw;
+            width: auto;
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        body.lyrics-mode .lyrics-panel {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+        }
 
         /* ===== Sound Wave ===== */
         .sound-wave {
@@ -569,6 +755,19 @@
             .search-panel { width: 100%; max-width: 100%; border-radius: 16px 16px 0 0; margin-top: auto; padding: 24px 18px; }
             .search-overlay.active { align-items: flex-end; }
             .slot-indicator { position: fixed; bottom: 104px; z-index: 50; left: 0; right: 0; }
+            body.lyrics-mode { padding: 4% 4% 170px; align-items: center; justify-content: flex-start; }
+            body.lyrics-mode h1 { position: fixed; top: 56px; left: 0; right: 0; }
+            body.lyrics-mode .icon-cards { top: 96px; left: 0; right: 0; width: 92vw; height: 250px; perspective: none; }
+            body.lyrics-mode .icon-cards__item { width: 46vw; height: 46vw; max-width: 210px; max-height: 210px; }
+            body.lyrics-mode #track-title { top: 344px; bottom: auto; left: 5vw; right: 5vw; }
+            body.lyrics-mode .gapgutton { top: 394px; bottom: auto; left: 0; right: 0; }
+            body.lyrics-mode .player-progress { top: 458px; left: 8vw; right: 8vw; width: auto; }
+            body.lyrics-mode .lyrics-panel { top: 522px; left: 8vw; right: 8vw; width: auto; height: calc(100vh - 626px); min-height: 220px; }
+            .lyrics-list { padding: 0 44px 72px 12px; }
+            .lyric-pair { min-height: 46px; margin-bottom: 16px; opacity: 0.62; }
+            .lyric-original { font-size: 0.96rem; line-height: 1.34; }
+            .lyric-pair.active .lyric-original { font-size: 1.18rem; }
+            .lyric-translation { font-size: 0.7rem; }
         }
         @media (max-width: 380px) {
             body { padding: 4% 3% 130px; }
@@ -638,7 +837,7 @@
     <div id="lava-bg" class="lava-bg"></div>
 
     <!-- ============ Main Content ============ -->
-    <h1>音 乐 播 放 器</h1>
+    <h1>EchoRoom</h1>
 
     <!-- 槽位指示器 -->
     <div class="slot-indicator" id="slot-indicator">
@@ -680,6 +879,18 @@
             </svg>
         </button>
     </div>
+
+    <div class="player-progress" id="player-progress">
+        <div class="progress-times">
+            <span id="current-time">0:00</span>
+            <span id="duration-time">0:00</span>
+        </div>
+        <input class="progress-range" id="progress-range" type="range" min="0" max="1000" value="0" aria-label="播放进度">
+    </div>
+
+    <aside class="lyrics-panel" id="lyrics-panel" aria-label="歌词">
+        <div class="lyrics-list" id="lyrics-list"></div>
+    </aside>
 
     <!-- ============ Popup Overlay ============ -->
     <div id="popup-overlay" class="popup-overlay">
@@ -889,6 +1100,15 @@
     const playIcon    = document.querySelector('.icon-play');
     const pauseIcon   = document.querySelector('.icon-pause');
     const iconCards   = document.getElementById('icon-cards');
+    const progressRange = document.getElementById('progress-range');
+    const currentTimeEl = document.getElementById('current-time');
+    const durationTimeEl = document.getElementById('duration-time');
+    const lyricsList = document.getElementById('lyrics-list');
+
+    let lyricsMode = false;
+    let lyricRows = [];
+    let activeLyricIndex = -1;
+    let lyricsUserScrollUntil = 0;
 
     // ============================================================
     //  INIT — 从本地API获取6首默认歌曲的封面和专辑信息
@@ -948,6 +1168,10 @@
     //  CARDS — 固定6张，JS动态设置3D位置
     // ============================================================
     function cardTransform(index, scale) {
+        if (lyricsMode) {
+            const detailScale = isMobile() ? 1 : 1.14;
+            return `transform: translate3d(0, ${isMobile() ? 0 : 18}px, 0) rotateY(0deg) scale(${detailScale})`;
+        }
         const angle = index * 60;
         const s = scale || 1;
         if (isMobile()) {
@@ -957,9 +1181,12 @@
     }
 
     function renderCards() {
-        contentEl.innerHTML = slots.map((t, i) => {
+        const visibleSlots = lyricsMode ? [{ track: slots[currentIdx], index: currentIdx }] : slots.map((track, index) => ({ track, index }));
+        contentEl.innerHTML = visibleSlots.map(({ track: t, index: i }) => {
             const s = isPlaying ? (i === currentIdx ? 1.12 : 0.85) : 1;
-            const opacity = isPlaying ? (i === currentIdx ? 1 : 0.35) : 1;
+            const opacity = lyricsMode
+                ? (i === currentIdx ? 1 : 0.48)
+                : (isPlaying ? (i === currentIdx ? 1 : 0.35) : 1);
             const act = (i === currentIdx) ? ' is-active-card' : '';
             const ply = isPlaying ? ' playing' : '';
             return `
@@ -974,16 +1201,22 @@
 
     function updateCardScales() {
         const cards = contentEl.querySelectorAll('.icon-cards__item');
-        cards.forEach((card, i) => {
-            const s = isPlaying ? (i === currentIdx ? 1.12 : 0.85) : 1;
+        cards.forEach((card) => {
+            const i = Number(card.dataset.index);
+            const isCurrent = i === currentIdx;
+            const s = isPlaying ? (isCurrent ? 1.12 : 0.85) : 1;
             card.style.transform = cardTransform(i, s).replace('transform: ', '');
-            card.style.opacity = isPlaying ? (i === currentIdx ? '1' : '0.35') : '1';
+            card.style.opacity = lyricsMode
+                ? (isCurrent ? '1' : '0.48')
+                : (isPlaying ? (isCurrent ? '1' : '0.35') : '1');
             if (isPlaying) {
                 card.classList.add('playing');
-                if (i === currentIdx) card.classList.add('is-active-card');
+                if (isCurrent) card.classList.add('is-active-card');
                 else card.classList.remove('is-active-card');
             } else {
-                card.classList.remove('playing', 'is-active-card');
+                card.classList.remove('playing');
+                if (isCurrent) card.classList.add('is-active-card');
+                else card.classList.remove('is-active-card');
             }
         });
     }
@@ -1003,13 +1236,19 @@
                 if (wasDragging) return;
                 const idx = parseInt(el.dataset.index);
                 if (idx === currentIdx) {
-                    openPopup(idx);
+                    toggleLyricsMode();
+                } else {
+                    goTo(idx);
                 }
             });
         });
     }
 
     function updateContentTransform() {
+        if (lyricsMode) {
+            contentEl.style.transform = 'translateZ(0)';
+            return;
+        }
         const tz = isMobile() ? '50vw' : '38vw';
         const axis = isMobile() ? 'rotateX' : 'rotateY';
         const sign = isMobile() ? 1 : -1;
@@ -1054,6 +1293,7 @@
         updateSlotDots();
         updateTrackInfo();
         updateLavaColors();
+        if (lyricsMode) loadLyricsForCurrent();
 
         // 标记刚替换的卡片高亮
         const newCard = contentEl.querySelector(`[data-index="${currentIdx}"]`);
@@ -1084,12 +1324,174 @@
         updateTrackInfo();
         updateLavaColors();
         if (isPlaying) updateCardScales();
+        if (lyricsMode) {
+            renderCards();
+            loadLyricsForCurrent();
+        }
         if (autoPlay !== false && !sameTrack) {
             loadAndPlay(slots[currentIdx]);
         }
     }
     function goNext() { goTo(currentIdx + 1); }
     function goPrev() { goTo(currentIdx - 1); }
+
+    // ============================================================
+    //  LYRICS DETAIL MODE + PROGRESS
+    // ============================================================
+    function toggleLyricsMode(force) {
+        lyricsMode = typeof force === 'boolean' ? force : !lyricsMode;
+        document.body.classList.toggle('lyrics-mode', lyricsMode);
+        renderCards();
+        updateContentTransform();
+        updateTrackInfo();
+        updateProgressUI();
+        if (lyricsMode) loadLyricsForCurrent();
+    }
+
+    function formatTime(seconds) {
+        if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateProgressUI() {
+        const duration = audio.duration || 0;
+        const current = audio.currentTime || 0;
+        const pct = duration ? Math.min(100, Math.max(0, current / duration * 100)) : 0;
+        progressRange.value = duration ? Math.round(current / duration * 1000) : 0;
+        progressRange.style.setProperty('--progress', `${pct}%`);
+        currentTimeEl.textContent = formatTime(current);
+        durationTimeEl.textContent = formatTime(duration);
+    }
+
+    function parseLrc(text) {
+        if (!text) return [];
+        const rows = [];
+        text.split(/\r?\n/).forEach(line => {
+            const matches = [...line.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)];
+            const content = line.replace(/\[[^\]]+\]/g, '').trim();
+            if (!matches.length || !content) return;
+            if (/^(作词|作曲|编曲|制作人|监制|和声|录音|混音|母带|吉他|贝斯|鼓|键盘|弦乐|词|曲|OP|SP)\s*[:：]/i.test(content)) return;
+            matches.forEach(match => {
+                rows.push({
+                    time: Number(match[1]) * 60 + Number(match[2]),
+                    original: content,
+                    translation: ''
+                });
+            });
+        });
+        return rows.sort((a, b) => a.time - b.time);
+    }
+
+    function isChineseLyricText(text) {
+        const value = String(text || '').trim();
+        if (!value) return false;
+        const hasCjk = /[\u4e00-\u9fff]/.test(value);
+        const hasNonChineseScript = /[\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff]/.test(value);
+        const latinLetters = (value.match(/[A-Za-zÀ-ÖØ-öø-ÿ]/g) || []).length;
+        const cjkLetters = (value.match(/[\u4e00-\u9fff]/g) || []).length;
+        return hasCjk && !hasNonChineseScript && cjkLetters >= latinLetters;
+    }
+
+    function shouldUseSingleLineLyrics(rows) {
+        const sample = rows.slice(0, 8).map(row => row.original).join('');
+        return isChineseLyricText(sample);
+    }
+
+    function mergeLyricRows(originalRows, translationRows) {
+        if (!originalRows.length) return fallbackLyrics();
+        const singleLine = shouldUseSingleLineLyrics(originalRows);
+        return originalRows.map(row => {
+            const translated = translationRows.find(item => Math.abs(item.time - row.time) < 0.6);
+            return {
+                time: row.time,
+                original: row.original,
+                translation: singleLine ? '' : (translated?.original || ''),
+                singleLine
+            };
+        });
+    }
+
+    function fallbackLyrics() {
+        return [
+            { time: 0, original: '我曾把最重要的东西弄丢', translation: '', singleLine: true },
+            { time: 8, original: '没有灯光的房间里', translation: '', singleLine: true },
+            { time: 16, original: '我们仍然听见彼此', translation: '', singleLine: true },
+            { time: 24, original: '风穿过玻璃', translation: '', singleLine: true },
+            { time: 32, original: '下一句还没唱完', translation: '', singleLine: true },
+            { time: 40, original: '光落在安静的夜里', translation: '', singleLine: true },
+            { time: 48, original: '回声慢慢远去', translation: '', singleLine: true }
+        ];
+    }
+
+    function renderLyrics() {
+        if (!lyricsList) return;
+        const rows = lyricRows.length ? lyricRows : fallbackLyrics();
+        lyricsList.innerHTML = rows.map((row, index) => `
+            <div class="lyric-pair${index === activeLyricIndex ? ' active' : ''}${row.singleLine || !row.translation ? ' single-line' : ''}" data-lyric-index="${index}">
+                <div class="lyric-original">${esc(row.original || '')}</div>
+                ${row.translation ? `<div class="lyric-translation">${esc(row.translation)}</div>` : ''}
+            </div>
+        `).join('');
+        syncLyricScroll();
+    }
+
+    async function loadLyricsForCurrent() {
+        const track = slots[currentIdx];
+        lyricRows = fallbackLyrics();
+        activeLyricIndex = 0;
+        renderLyrics();
+        if (!track?.nid) return;
+        try {
+            const res = await apiFetch(`/lyric?id=${track.nid}`);
+            const data = await res.json();
+            const originalRows = parseLrc(data.lrc?.lyric || '');
+            const translationRows = parseLrc(data.tlyric?.lyric || data.romalrc?.lyric || '');
+            lyricRows = mergeLyricRows(originalRows, translationRows);
+            activeLyricIndex = -1;
+            updateActiveLyric();
+        } catch (error) {
+            renderLyrics();
+        }
+    }
+
+    function updateActiveLyric() {
+        if (!lyricsMode || !lyricRows.length) return;
+        const current = audio.currentTime || 0;
+        let nextIndex = 0;
+        for (let i = 0; i < lyricRows.length; i++) {
+            if (lyricRows[i].time <= current + 0.1) nextIndex = i;
+            else break;
+        }
+        if (nextIndex === activeLyricIndex) return;
+        activeLyricIndex = nextIndex;
+        renderLyrics();
+    }
+
+    function syncLyricScroll() {
+        const active = lyricsList?.querySelector('.lyric-pair.active');
+        if (!active) return;
+        if (Date.now() < lyricsUserScrollUntil) return;
+        const maxOffset = Math.max(0, lyricsList.scrollHeight - lyricsList.clientHeight);
+        const target = active.offsetTop - lyricsList.clientHeight * 0.38 + active.offsetHeight * 0.5;
+        const offset = Math.min(maxOffset, Math.max(0, target));
+        lyricsList.scrollTo({ top: offset, behavior: 'smooth' });
+    }
+
+    function markLyricsManualScroll() {
+        lyricsUserScrollUntil = Date.now() + 3500;
+    }
+
+    progressRange.addEventListener('input', () => {
+        if (!audio.duration) return;
+        audio.currentTime = (Number(progressRange.value) / 1000) * audio.duration;
+        updateProgressUI();
+        updateActiveLyric();
+    });
+    lyricsList.addEventListener('wheel', markLyricsManualScroll, { passive: true });
+    lyricsList.addEventListener('touchstart', markLyricsManualScroll, { passive: true });
+    lyricsList.addEventListener('pointerdown', markLyricsManualScroll);
 
     // ============================================================
     //  DRAG / SWIPE
@@ -1109,6 +1511,7 @@
     window.addEventListener('touchend', onDragEnd);
 
     function onDragStart(e) {
+        if (lyricsMode) return;
         isDragging = true; wasDragging = false;
         const pt = e.touches ? e.touches[0] : e;
         dragStartX = pt.clientX; dragStartY = pt.clientY;
@@ -1199,6 +1602,12 @@
     audio.addEventListener('pause', () => setPlaying(false));
     audio.addEventListener('ended', () => { setPlaying(false); goNext(); });
     audio.addEventListener('error', () => setPlaying(false));
+    audio.addEventListener('loadedmetadata', updateProgressUI);
+    audio.addEventListener('durationchange', updateProgressUI);
+    audio.addEventListener('timeupdate', () => {
+        updateProgressUI();
+        updateActiveLyric();
+    });
 
     // ============================================================
     //  POPUP
@@ -1827,7 +2236,7 @@
             case 'ArrowLeft':  e.preventDefault(); goPrev(); break;
             case 'ArrowRight': e.preventDefault(); goNext(); break;
             case ' ':          e.preventDefault(); togglePlay(); break;
-            case 'Escape':     closePopup(); closeSearch(); break;
+            case 'Escape':     closePopup(); closeSearch(); toggleLyricsMode(false); break;
         }
     });
 
