@@ -8,6 +8,8 @@ const localApiRoutes = [
   ['/api/auth/me', require('./api/auth/me')],
   ['/api/auth/logout', require('./api/auth/logout')],
   ['/api/me/recent-tracks', require('./api/me/recent-tracks')],
+  ['/api/me/playlists', require('./api/me/playlists')],
+  ['/api/playlist/tracks', require('./api/playlist/tracks')],
   ['/api/track/url', require('./api/track/url')],
   ['/api/track/lyric', require('./api/track/lyric')],
 ];

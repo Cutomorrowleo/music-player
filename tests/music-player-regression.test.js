@@ -125,6 +125,23 @@ assert(
   'NetEase Cloud login button should use translateX(-50%) centering'
 );
 
+const trackTitleRule = extractCssRule('#track-title');
+assert(
+  /overflow\s*:\s*hidden/.test(trackTitleRule) &&
+  /-webkit-line-clamp\s*:\s*2/.test(trackTitleRule) &&
+  /(mask-image|-webkit-mask-image)\s*:/.test(trackTitleRule),
+  'long song and artist titles should be clamped and faded before they cover the controls'
+);
+
+assert(
+  /@media\s*\(max-width:\s*600px\)[\s\S]*\.ncm-login-btn\s*\{[\s\S]*max-width\s*:\s*34vw[\s\S]*\}/.test(html),
+  'mobile login nickname should be constrained so it does not cover the EchoRoom heading'
+);
+assert(
+  /@media\s*\(max-width:\s*600px\)[\s\S]*h1\s*\{[\s\S]*top\s*:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*76px\)/.test(html),
+  'mobile EchoRoom heading should sit below the top control row instead of under the login button'
+);
+
 assert(
   /id=["']ncm-login-overlay["']/.test(html),
   'NetEase Cloud login overlay should be rendered'
@@ -139,6 +156,46 @@ assert(
   /id=["']ncm-login-title["']/.test(html),
   'NetEase Cloud login title should have an id for aria-labelledby'
 );
+[
+  'ncm-qr-view',
+  'ncm-account-view',
+  'ncm-playlist-list',
+  'ncm-track-list',
+  'ncm-logout-btn',
+  'ncm-account-close',
+].forEach((id) => {
+  assert(
+    new RegExp(`id=["']${id}["']`).test(html),
+    `NetEase Cloud account modal should include #${id}`
+  );
+});
+
+assert(
+  /<button\s+id=["']ncm-account-close["'][^>]*class=["']popup-close[^"']*["'][^>]*aria-label=["']关闭["']/s.test(html),
+  'NetEase Cloud account modal should use the existing round popup-close button style for the top-right close action'
+);
+
+const ncmAccountScrollRule = extractCssRule('.ncm-playlist-list,');
+assert(
+  /scrollbar-width\s*:\s*thin/.test(ncmAccountScrollRule) &&
+  /scrollbar-color\s*:\s*var\(--track-accent\)\s+transparent/.test(ncmAccountScrollRule),
+  'NetEase Cloud account lists should use the same themed Firefox scrollbar colors as the frontend'
+);
+['.ncm-playlist-list::-webkit-scrollbar', '.ncm-track-list::-webkit-scrollbar'].forEach((selector) => {
+  const rule = extractCssRule(selector);
+  assert(/width\s*:\s*5px/.test(rule), `${selector} should match the frontend thin scrollbar width`);
+});
+['.ncm-playlist-list::-webkit-scrollbar-track', '.ncm-track-list::-webkit-scrollbar-track'].forEach((selector) => {
+  const rule = extractCssRule(selector);
+  assert(/background\s*:\s*transparent/.test(rule), `${selector} should use a transparent track`);
+});
+['.ncm-playlist-list::-webkit-scrollbar-thumb', '.ncm-track-list::-webkit-scrollbar-thumb'].forEach((selector) => {
+  const rule = extractCssRule(selector);
+  assert(
+    /background\s*:\s*var\(--track-accent\)/.test(rule) && /border-radius\s*:\s*999px/.test(rule),
+    `${selector} should use the active accent thumb with rounded ends`
+  );
+});
 
 [
   '登录网易云',
@@ -168,6 +225,12 @@ assert(
   'fetchNcmMe',
   'renderNcmLoginState',
   'openNcmLogin',
+  'openNcmAccount',
+  'loadNcmPlaylists',
+  'loadNcmPlaylistTracks',
+  'renderNcmPlaylists',
+  'renderNcmPlaylistTracks',
+  'logoutNcm',
   'closeNcmLogin',
   'startNcmQrLogin',
   'checkNcmQrLogin',
@@ -352,9 +415,51 @@ assert(
 
 const openNcmLogin = extractFunction('openNcmLogin');
 assert(
+  /if\s*\(\s*ncmUser\s*\)\s*\{[\s\S]*openNcmAccount\(\)[\s\S]*return[\s\S]*\}/.test(openNcmLogin),
+  'openNcmLogin should open the account playlist view instead of QR when already logged in'
+);
+assert(
   /document\.getElementById\(['"]ncm-login-(refresh|cancel)['"]\)\?\.focus\(\)/.test(openNcmLogin) ||
   /document\.getElementById\(['"]ncm-login-(refresh|cancel)['"]\)[\s\S]*\.focus\(\)/.test(openNcmLogin),
   'openNcmLogin should focus a modal action button'
+);
+
+const openNcmAccount = extractFunction('openNcmAccount');
+assert(
+  /showNcmAccountView\(\)/.test(openNcmAccount) && /loadNcmPlaylists\(\)/.test(openNcmAccount),
+  'openNcmAccount should switch to the playlist view and load the logged-in user playlists'
+);
+
+const loadNcmPlaylists = extractFunction('loadNcmPlaylists');
+assert(
+  /fetch\(['"]\/api\/me\/playlists['"]\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(loadNcmPlaylists),
+  'loadNcmPlaylists should fetch /api/me/playlists with credentials include'
+);
+
+const loadNcmPlaylistTracks = extractFunction('loadNcmPlaylistTracks');
+assert(
+  /fetch\(\s*`\/api\/playlist\/tracks\?id=\$\{encodeURIComponent\(playlistId\)\}`\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(loadNcmPlaylistTracks),
+  'loadNcmPlaylistTracks should fetch selected playlist songs with credentials include'
+);
+
+const renderNcmPlaylistTracks = extractFunction('renderNcmPlaylistTracks');
+assert(
+  /replaceSlot\(track\)/.test(renderNcmPlaylistTracks),
+  'renderNcmPlaylistTracks should let the user select a playlist song into the player'
+);
+
+const logoutNcm = extractFunction('logoutNcm');
+assert(
+  /fetch\(['"]\/api\/auth\/logout['"]\s*,\s*\{[^}]*method\s*:\s*['"]POST['"][^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(logoutNcm),
+  'logoutNcm should POST /api/auth/logout with credentials include'
+);
+
+const onDragEnd = extractFunction('onDragEnd');
+assert(
+  /function\s+onDragEnd\s*\(\s*e\s*\)/.test(onDragEnd) &&
+  /e\?\.type\s*===\s*['"]touchend['"]/.test(onDragEnd) &&
+  /toggleLyricsMode\(\)/.test(onDragEnd),
+  'mobile touch tap on the active cover should enter lyrics mode instead of being swallowed by drag handling'
 );
 
 const closeNcmLogin = extractFunction('closeNcmLogin');
@@ -362,6 +467,11 @@ assert(
   /document\.getElementById\(['"]ncm-login-btn['"]\)\?\.focus\(\)/.test(closeNcmLogin) ||
   /document\.getElementById\(['"]ncm-login-btn['"]\)[\s\S]*\.focus\(\)/.test(closeNcmLogin),
   'closeNcmLogin should restore focus to the login button'
+);
+
+assert(
+  /document\.getElementById\(['"]ncm-account-close['"]\)\?\.addEventListener\(['"]click['"],\s*closeNcmLogin\)/.test(html),
+  'NetEase Cloud account close button should close the modal through closeNcmLogin'
 );
 
 const bootBlock = extractInitThenBlock();

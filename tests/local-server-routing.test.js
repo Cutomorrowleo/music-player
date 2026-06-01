@@ -64,12 +64,18 @@ function request(pathname) {
     const cacheIndex = stack.findIndex(isCacheLayer);
     const packageApiIndex = stack.findIndex((layer, index) => index > cacheIndex && isPackageApiLayer(layer));
     const qrStartIndex = stack.findIndex((layer) => layerPath(layer) === '/api/auth/qr/start');
+    const playlistsIndex = stack.findIndex((layer) => layerPath(layer) === '/api/me/playlists');
+    const playlistTracksIndex = stack.findIndex((layer) => layerPath(layer) === '/api/playlist/tracks');
 
     assert(qrStartIndex !== -1, 'server should mount /api/auth/qr/start');
+    assert(playlistsIndex !== -1, 'server should mount /api/me/playlists');
+    assert(playlistTracksIndex !== -1, 'server should mount /api/playlist/tracks');
     assert(cacheIndex !== -1, 'package cache middleware should exist in local stack');
     assert(packageApiIndex !== -1, 'package /api proxy layer should exist in local stack');
     assert(qrStartIndex < cacheIndex, 'local auth routes should run before package cache middleware');
     assert(qrStartIndex < packageApiIndex, 'local auth routes should run before package /api proxy');
+    assert(playlistsIndex < cacheIndex, 'local playlists route should run before package cache middleware');
+    assert(playlistTracksIndex < cacheIndex, 'local playlist tracks route should run before package cache middleware');
 
     const response = await request('/api/auth/qr/start');
     assert.strictEqual(

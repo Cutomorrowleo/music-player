@@ -14,6 +14,8 @@ const files = [
   'api/auth/me.js',
   'api/auth/logout.js',
   'api/me/recent-tracks.js',
+  'api/me/playlists.js',
+  'api/playlist/tracks.js',
   'api/track/url.js',
   'api/track/lyric.js',
 ];
@@ -54,6 +56,23 @@ assert(/unsealNcmCookie/.test(recentTracksSource), 'recent tracks should unseal 
 assert(/LOGIN_REQUIRED/.test(recentTracksSource), 'recent tracks should require login');
 assert(/callNcm\('record_recent_song'/.test(recentTracksSource), 'recent tracks should fetch recent songs');
 assert(/normalizeRecentTracks\(body,\s*limit\)/.test(recentTracksSource), 'recent tracks should normalize the direct body envelope');
+
+const playlistsSource = fs.readFileSync(path.join(__dirname, '..', 'api/me/playlists.js'), 'utf8');
+assert(/parseSessionCookie/.test(playlistsSource), 'playlists should parse local session cookie');
+assert(/await\s+getSession/.test(playlistsSource), 'playlists should await local session lookup');
+assert(/unsealNcmCookie/.test(playlistsSource), 'playlists should unseal stored NetEase cookie');
+assert(/LOGIN_REQUIRED/.test(playlistsSource), 'playlists should require login');
+assert(/callNcm\('user_playlist'/.test(playlistsSource), 'playlists should fetch user playlists');
+assert(/normalizePlaylists\(body/.test(playlistsSource), 'playlists should normalize NetEase playlist envelopes');
+
+const playlistTracksSource = fs.readFileSync(path.join(__dirname, '..', 'api/playlist/tracks.js'), 'utf8');
+assert(/parseSessionCookie/.test(playlistTracksSource), 'playlist tracks should parse local session cookie');
+assert(/await\s+getSession/.test(playlistTracksSource), 'playlist tracks should await local session lookup');
+assert(/unsealNcmCookie/.test(playlistTracksSource), 'playlist tracks should unseal stored NetEase cookie');
+assert(/LOGIN_REQUIRED/.test(playlistTracksSource), 'playlist tracks should require login');
+assert(/MISSING_ID/.test(playlistTracksSource), 'playlist tracks should require playlist id');
+assert(/callNcm\('playlist_track_all'/.test(playlistTracksSource), 'playlist tracks should fetch playlist songs');
+assert(/normalizeRecentTracks\(body,\s*limit\)/.test(playlistTracksSource), 'playlist tracks should normalize songs to slot shape');
 
 const trackUrlSource = fs.readFileSync(path.join(__dirname, '..', 'api/track/url.js'), 'utf8');
 assert(/MISSING_ID/.test(trackUrlSource), 'track URL should require id');
@@ -231,6 +250,70 @@ function makeRecentSongBody(count) {
   await assertRecentLimit('3abc', 6, 'partially malformed recent track limit should default to 6');
   await assertRecentLimit('-2', 6, 'negative recent track limit should default to 6');
   await assertRecentLimit('99', 6, 'oversized recent track limit should clamp to 6');
+
+  const restorePlaylistsSession = patchExports('../lib/sessionStore', {
+    parseSessionCookie: () => 'sess_playlists',
+    getSession: async () => ({ uid: 456, sealedCookie: 'sealed' }),
+    unsealNcmCookie: () => 'MUSIC_U=mock',
+  });
+  const restorePlaylistsNcm = patchExports('../lib/ncmClient', {
+    callNcm: async (fnName, params, ncmCookie) => {
+      assert.strictEqual(fnName, 'user_playlist', 'playlists should call user_playlist');
+      assert.strictEqual(params.uid, 456, 'playlists should request current session uid');
+      assert.strictEqual(ncmCookie, 'MUSIC_U=mock', 'playlists should pass unsealed cookie');
+      return {
+        playlist: [
+          { id: 501, name: 'Mine', coverImgUrl: 'https://img.example/p.jpg', trackCount: 2 },
+        ],
+      };
+    },
+  });
+  clearRoute('../api/me/playlists');
+  const playlistsHandler = require('../api/me/playlists');
+  const playlistsRes = createRes();
+  await playlistsHandler(
+    { headers: { cookie: createSessionCookie('sess_playlists') }, query: {} },
+    playlistsRes
+  );
+  restorePlaylistsNcm();
+  restorePlaylistsSession();
+  assert.strictEqual(playlistsRes.statusCode, 200, 'playlists should return 200');
+  assert.strictEqual(playlistsRes.body.playlists.length, 1, 'playlists should return normalized playlists');
+
+  const restorePlaylistTracksSession = patchExports('../lib/sessionStore', {
+    parseSessionCookie: () => 'sess_playlist_tracks',
+    getSession: async () => ({ uid: 456, sealedCookie: 'sealed' }),
+    unsealNcmCookie: () => 'MUSIC_U=mock',
+  });
+  const restorePlaylistTracksNcm = patchExports('../lib/ncmClient', {
+    callNcm: async (fnName, params, ncmCookie) => {
+      assert.strictEqual(fnName, 'playlist_track_all', 'playlist tracks should call playlist_track_all');
+      assert.strictEqual(params.id, '501', 'playlist tracks should request selected playlist id');
+      assert.strictEqual(params.limit, 80, 'playlist tracks should default to a bounded limit');
+      assert.strictEqual(ncmCookie, 'MUSIC_U=mock', 'playlist tracks should pass unsealed cookie');
+      return {
+        songs: [
+          {
+            id: 601,
+            name: 'Song',
+            ar: [{ name: 'Artist' }],
+            al: { name: 'Album', picUrl: 'https://img.example/s.jpg' },
+          },
+        ],
+      };
+    },
+  });
+  clearRoute('../api/playlist/tracks');
+  const playlistTracksHandler = require('../api/playlist/tracks');
+  const playlistTracksRes = createRes();
+  await playlistTracksHandler(
+    { headers: { cookie: createSessionCookie('sess_playlist_tracks') }, query: { id: '501' } },
+    playlistTracksRes
+  );
+  restorePlaylistTracksNcm();
+  restorePlaylistTracksSession();
+  assert.strictEqual(playlistTracksRes.statusCode, 200, 'playlist tracks should return 200');
+  assert.strictEqual(playlistTracksRes.body.tracks[0].nid, 601, 'playlist tracks should return normalized songs');
 
   clearRoute('../api/track/url');
   const trackUrlMissingIdHandler = require('../api/track/url');

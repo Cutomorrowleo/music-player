@@ -1,7 +1,7 @@
 const assert = require('assert');
 const ncm = require('NeteaseCloudMusicApi');
 const { callNcm } = require('../lib/ncmClient');
-const { normalizeRecentTracks } = require('../lib/trackNormalizer');
+const { normalizePlaylists, normalizeRecentTracks } = require('../lib/trackNormalizer');
 
 const records = [
   {
@@ -105,6 +105,43 @@ assert.deepStrictEqual(userRecordTracks[0], {
   album: 'Album Weekly',
   cover: 'https://img.example/weekly.jpg',
 });
+
+const playlistTracks = normalizeRecentTracks({
+  songs: [
+    {
+      id: 401,
+      name: 'Playlist Track',
+      ar: [{ name: 'Playlist Artist' }],
+      al: { name: 'Playlist Album', picUrl: 'https://img.example/playlist-track.jpg' },
+    },
+  ],
+});
+assert.deepStrictEqual(playlistTracks[0], {
+  nid: 401,
+  title: 'Playlist Track',
+  artist: 'Playlist Artist',
+  album: 'Playlist Album',
+  cover: 'https://img.example/playlist-track.jpg',
+}, 'should normalize playlist_track_all songs envelopes');
+
+const playlists = normalizePlaylists({
+  playlist: [
+    {
+      id: 501,
+      name: 'My Playlist',
+      coverImgUrl: 'https://img.example/playlist.jpg',
+      trackCount: 12,
+      creator: { nickname: 'Owner' },
+    },
+  ],
+});
+assert.deepStrictEqual(playlists[0], {
+  id: 501,
+  name: 'My Playlist',
+  cover: 'https://img.example/playlist.jpg',
+  trackCount: 12,
+  creator: 'Owner',
+}, 'should normalize user playlist envelopes');
 
 ncm.__codex_test_call = async (params) => ({ body: params });
 
