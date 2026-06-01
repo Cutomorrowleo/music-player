@@ -110,6 +110,8 @@
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
+        }
+        .track-title-fade {
             -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
             mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
         }
@@ -668,6 +670,21 @@
             gap: 16px;
             min-height: 330px;
         }
+        .ncm-account-column {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .ncm-playlist-section-label,
+        .ncm-track-section-label {
+            display: block;
+            color: rgba(245,230,208,0.52);
+            font-family: var(--font-heading);
+            font-size: 0.66rem;
+            letter-spacing: 0.08em;
+        }
+        .ncm-account-divider { display: none; }
         .ncm-playlist-list,
         .ncm-track-list {
             display: flex;
@@ -946,10 +963,11 @@
             .drag-hint { display: block; position: fixed; bottom: 66px; left: 0; right: 0; margin: 0; z-index: 50; }
             h1 { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 76px); left: 0; right: 0; z-index: 45; pointer-events: none; font-size: clamp(0.75rem, 3.5vw, 1.1rem); margin: 0 0 4px; }
             .ncm-login-btn { top: calc(env(safe-area-inset-top, 0px) + 20px); max-width: 34vw; min-width: 0; padding: 0 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            #track-title { position: fixed; bottom: 86px; left: 0; right: 0; font-size: clamp(1rem, 5.5vw, 1.5rem); min-height: auto; margin: 0; z-index: 50; }
+            #track-title { position: fixed; bottom: 126px; left: 50%; right: auto; transform: translateX(-50%); width: min(94vw, 620px); max-width: min(94vw, 620px); text-align: center; box-sizing: border-box; padding: 0 6px; font-size: clamp(1rem, 5vw, 1.38rem); min-height: auto; margin: 0; z-index: 50; }
             .lava-bg { filter: blur(30px); }
             .lava-blob { filter: blur(20px); }
-            .sound-wave { display: none; }
+            .sound-wave { display: flex; left: 20px; bottom: 18px; height: 28px; gap: 2px; z-index: 55; }
+            .sound-wave span { width: 2.2px; }
             .add-track-btn { bottom: 16px; right: 16px; width: 42px; height: 42px; }
             .popup-panel { flex-direction: column; max-width: 100%; width: 100%; max-height: 90vh; max-height: 90dvh; overflow-y: auto; border-radius: 16px 16px 0 0; margin-top: auto; }
             .popup-overlay.active { align-items: flex-end; }
@@ -967,7 +985,8 @@
             body.lyrics-mode h1 { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 76px); left: 0; right: 0; }
             body.lyrics-mode .icon-cards { top: 96px; left: 0; right: 0; width: 92vw; height: 250px; perspective: none; }
             body.lyrics-mode .icon-cards__item { width: 46vw; height: 46vw; max-width: 210px; max-height: 210px; }
-            body.lyrics-mode #track-title { top: 344px; bottom: auto; left: 5vw; right: 5vw; }
+            body.lyrics-mode #track-title { top: 344px; bottom: auto; left: 50%; right: auto; transform: translateX(-50%); }
+            body.lyrics-mode .drag-hint { display: none; }
             body.lyrics-mode .gapgutton { top: 394px; bottom: auto; left: 0; right: 0; }
             body.lyrics-mode .player-progress { top: 458px; left: 8vw; right: 8vw; width: auto; }
             body.lyrics-mode .lyrics-panel { top: 522px; left: 8vw; right: 8vw; width: auto; height: calc(100vh - 626px); min-height: 220px; }
@@ -977,7 +996,10 @@
             .lyric-pair.active .lyric-original { font-size: 1.18rem; }
             .lyric-translation { font-size: 0.7rem; }
             .ncm-login-panel.account-panel { width: 92%; min-height: 0; max-height: 82vh; max-height: 82dvh; overflow-y: auto; padding: 24px 18px; }
-            .ncm-account-layout { grid-template-columns: 1fr; min-height: 0; }
+            .ncm-account-layout { display: flex; flex-direction: column; grid-template-columns: 1fr; min-height: 0; gap: 12px; }
+            .ncm-account-divider { display: block; height: 1px; background: linear-gradient(90deg, transparent, var(--track-accent-line), transparent); margin: 2px 0; }
+            .ncm-playlist-section-label,
+            .ncm-track-section-label { display: block; color: rgba(245,230,208,0.38); font-family: var(--font-heading); font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; }
             .ncm-playlist-list,
             .ncm-track-list { max-height: 220px; }
         }
@@ -1204,8 +1226,15 @@
             </div>
             <div id="ncm-account-view" class="ncm-account-view" hidden>
                 <div class="ncm-account-layout">
-                    <div id="ncm-playlist-list" class="ncm-playlist-list" aria-label="网易云歌单"></div>
-                    <div id="ncm-track-list" class="ncm-track-list" aria-label="歌单歌曲"></div>
+                    <div class="ncm-account-column ncm-playlist-column">
+                        <span class="ncm-playlist-section-label">我的歌单</span>
+                        <div id="ncm-playlist-list" class="ncm-playlist-list" aria-label="网易云歌单"></div>
+                    </div>
+                    <div class="ncm-account-divider" aria-hidden="true"></div>
+                    <div class="ncm-account-column ncm-track-column">
+                        <span class="ncm-track-section-label">当前歌单歌曲</span>
+                        <div id="ncm-track-list" class="ncm-track-list" aria-label="歌单歌曲"></div>
+                    </div>
                 </div>
                 <div class="ncm-account-actions">
                     <button id="ncm-logout-btn" class="ncm-logout-btn" type="button">退出登录</button>
@@ -1451,6 +1480,22 @@
         }
     }
 
+    async function loadAccountTracksForHome() {
+        const playlistsRes = await fetch('/api/me/playlists', { credentials: 'include' });
+        if (!playlistsRes.ok) return [];
+        const playlistsData = await playlistsRes.json();
+        const playlist = Array.isArray(playlistsData.playlists) ? playlistsData.playlists[0] : null;
+        const playlistId = playlist && playlist.id;
+        if (!playlistId) return [];
+
+        const tracksRes = await fetch(`/api/playlist/tracks?id=${encodeURIComponent(playlistId)}&limit=6`, {
+            credentials: 'include',
+        });
+        if (!tracksRes.ok) return [];
+        const tracksData = await tracksRes.json();
+        return Array.isArray(tracksData.tracks) ? tracksData.tracks : [];
+    }
+
     function renderNcmPlaylists() {
         const list = document.getElementById('ncm-playlist-list');
         if (!list) return;
@@ -1638,6 +1683,8 @@
     let replaceIdx = 0;        // 下一个要被替换的槽位 (0-5)
     let currentIdx = 0;        // 当前显示的槽位
     let isPlaying  = false;
+    let playingIdx = null;
+    let playRequestSeq = 0;
     let reactiveMode = 'off';
 
     // --- DOM ---
@@ -1726,13 +1773,25 @@
 
     async function loadRecentTracksFromAccount() {
         try {
+            let tracks = [];
             const res = await fetch('/api/me/recent-tracks?limit=6', { credentials: 'include' });
-            if (!res.ok) return;
-            const data = await res.json();
-            if (!Array.isArray(data.tracks) || !data.tracks.length) return;
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data.tracks) && data.tracks.length) tracks = data.tracks;
+            }
+            if (!tracks.length) tracks = await loadAccountTracksForHome();
+            applyAccountTracksToHome(tracks);
+        } catch (error) {
+            console.warn('load recent tracks failed', error);
+            showToast('\u6700\u8fd1\u5e38\u542c\u52a0\u8f7d\u5931\u8d25');
+        }
+    }
+
+    function applyAccountTracksToHome(tracks) {
+        if (!Array.isArray(tracks) || !tracks.length) return false;
 
             const previousSlots = slots.slice(0, 6);
-            const nextSlots = data.tracks
+            const nextSlots = tracks
                 .map((track, index) => sanitizeRecentTrack(track, previousSlots[index] || DEFAULT_SLOTS[index] || {}, index))
                 .filter(Boolean)
                 .slice(0, 6);
@@ -1755,10 +1814,7 @@
             updateLavaColors();
             if (lyricsMode) loadLyricsForCurrent();
             if (isPlaying) loadAndPlay(slots[0]);
-        } catch (error) {
-            console.warn('load recent tracks failed', error);
-            showToast('\u6700\u8fd1\u5e38\u542c\u52a0\u8f7d\u5931\u8d25');
-        }
+            return true;
     }
 
     function sanitizeRecentTrack(track, fallback, index) {
@@ -1851,14 +1907,19 @@
         contentEl.querySelectorAll('.icon-cards__item').forEach(el => {
             el.addEventListener('click', (e) => {
                 if (wasDragging) return;
-                const idx = parseInt(el.dataset.index);
-                if (idx === currentIdx) {
-                    toggleLyricsMode();
-                } else {
-                    goTo(idx);
-                }
+                handleCardTap(el);
             });
         });
+    }
+
+    function handleCardTap(card) {
+        const idx = parseInt(card.dataset.index, 10);
+        if (Number.isNaN(idx)) return;
+        if (idx === currentIdx) {
+            toggleLyricsMode();
+        } else {
+            goTo(idx);
+        }
     }
 
     function updateContentTransform() {
@@ -1926,16 +1987,32 @@
     function updateTrackInfo() {
         const t = slots[currentIdx];
         trackTitle.textContent = t.title + ' - ' + t.artist;
+        trackTitle.classList.remove('track-title-fade');
+        updateTrackTitleFade();
         document.title = t.artist + ' - ' + t.title;
+    }
+
+    function updateTrackTitleFade() {
+        requestAnimationFrame(() => {
+            const titleText = trackTitle.textContent.trim();
+            const isLongTitle = titleText.length > 24;
+            const isClipped = trackTitle.scrollHeight > trackTitle.clientHeight + 1 ||
+                trackTitle.scrollWidth > trackTitle.clientWidth + 1;
+            const controls = document.querySelector('.gapgutton');
+            const hint = document.querySelector('.drag-hint');
+            const guard = hint && getComputedStyle(hint).display !== 'none' ? hint : controls;
+            const titleRect = trackTitle.getBoundingClientRect();
+            const guardRect = guard ? guard.getBoundingClientRect() : null;
+            const crowdsControls = guardRect ? titleRect.bottom > guardRect.top - 8 : false;
+            const shouldFade = isLongTitle && (isClipped || crowdsControls);
+            trackTitle.classList.toggle('track-title-fade', shouldFade);
+        });
     }
 
     // ============================================================
     //  CAROUSEL NAVIGATION
     // ============================================================
-    function goTo(index, autoPlay) {
-        index = ((index % 6) + 6) % 6;
-        const sameTrack = (index === currentIdx);
-        currentIdx = index;
+    function renderCurrentTrackState() {
         updateContentTransform();
         updateSlotDots();
         updateTrackInfo();
@@ -1945,9 +2022,29 @@
             renderCards();
             loadLyricsForCurrent();
         }
+    }
+
+    function restoreDisplayedTrack(index) {
+        currentIdx = ((index % 6) + 6) % 6;
+        renderCurrentTrackState();
+    }
+
+    async function goTo(index, autoPlay) {
+        const previousIdx = currentIdx;
+        index = ((index % 6) + 6) % 6;
+        const sameTrack = (index === currentIdx);
+        currentIdx = index;
+        renderCurrentTrackState();
         if (autoPlay !== false && !sameTrack) {
-            loadAndPlay(slots[currentIdx]);
+            const requestedIdx = currentIdx;
+            const rollbackIdx = Number.isInteger(playingIdx) ? playingIdx : previousIdx;
+            const playStarted = await loadAndPlay(slots[requestedIdx], { requestedIdx });
+            if (!playStarted && currentIdx === requestedIdx) {
+                restoreDisplayedTrack(rollbackIdx);
+            }
+            return playStarted;
         }
+        return true;
     }
     function goNext() { goTo(currentIdx + 1); }
     function goPrev() { goTo(currentIdx - 1); }
@@ -2162,11 +2259,7 @@
         contentEl.style.transition = 'transform 0.55s cubic-bezier(0.25, 0.1, 0.25, 1)';
         if (wasTap && e?.type === 'touchend') {
             const tappedCard = e.target?.closest?.('.icon-cards__item');
-            if (tappedCard?.classList.contains('active')) {
-                toggleLyricsMode();
-            } else if (tappedCard?.dataset?.index) {
-                goTo(parseInt(tappedCard.dataset.index, 10));
-            }
+            if (tappedCard) handleCardTap(tappedCard);
             setTimeout(() => { wasDragging = false; }, 50);
             return;
         }
@@ -2179,8 +2272,10 @@
     // ============================================================
     const NCM_REAL_IP = '116.25.146.177';
 
-    async function loadAndPlay(track) {
-        if (!track || !track.nid) { showToast('无法获取播放地址'); return; }
+    async function loadAndPlay(track, options) {
+        options = options || {};
+        const requestSeq = ++playRequestSeq;
+        if (!track || !track.nid) { showToast('无法获取播放地址'); return false; }
         showToast('正在加载 ' + track.title + '...');
         try {
             // lossless获取完整音频（非30秒试听）
@@ -2217,15 +2312,27 @@
                 }
             }
             if (url) {
+                if (requestSeq !== playRequestSeq) return false;
                 audio.src = url;
-                audio.play().then(() => setPlaying(true)).catch(() => showToast('播放失败'));
+                try {
+                    await audio.play();
+                    setPlaying(true);
+                    if (Number.isInteger(options.requestedIdx)) playingIdx = options.requestedIdx;
+                    return true;
+                } catch (error) {
+                    showToast('播放失败');
+                    return false;
+                }
             } else if (networkFailures === qualityLevels.length) {
                 showToast('缃戠粶閿欒');
+                return false;
             } else {
                 showToast('无播放源（版权/地区限制或需登录）');
+                return false;
             }
         } catch(e) {
             showToast('网络错误');
+            return false;
         }
     }
 
@@ -2921,6 +3028,7 @@
             renderCards();
             updateContentTransform();
         }
+        updateTrackTitleFade();
     });
 
     document.getElementById('ncm-login-btn')?.addEventListener('click', openNcmLogin);

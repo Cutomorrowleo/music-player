@@ -129,8 +129,14 @@ const trackTitleRule = extractCssRule('#track-title');
 assert(
   /overflow\s*:\s*hidden/.test(trackTitleRule) &&
   /-webkit-line-clamp\s*:\s*2/.test(trackTitleRule) &&
-  /(mask-image|-webkit-mask-image)\s*:/.test(trackTitleRule),
-  'long song and artist titles should be clamped and faded before they cover the controls'
+  !/(mask-image|-webkit-mask-image)\s*:/.test(trackTitleRule),
+  'normal song and artist titles should be clamped without bottom fade'
+);
+const trackTitleFadeRule = extractCssRule('.track-title-fade');
+assert(
+  /-webkit-mask-image\s*:\s*linear-gradient\(to bottom,\s*#000 0%,\s*#000 72%,\s*transparent 100%\)/.test(trackTitleFadeRule) &&
+  /mask-image\s*:\s*linear-gradient\(to bottom,\s*#000 0%,\s*#000 72%,\s*transparent 100%\)/.test(trackTitleFadeRule),
+  'only long song and artist titles should opt into bottom fade before they cover the controls'
 );
 
 assert(
@@ -140,6 +146,38 @@ assert(
 assert(
   /@media\s*\(max-width:\s*600px\)[\s\S]*h1\s*\{[\s\S]*top\s*:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*76px\)/.test(html),
   'mobile EchoRoom heading should sit below the top control row instead of under the login button'
+);
+assert(
+  /@media\s*\(max-width:\s*600px\)[\s\S]*#track-title\s*\{[\s\S]*left\s*:\s*50%[\s\S]*transform\s*:\s*translateX\(-50%\)[\s\S]*text-align\s*:\s*center[\s\S]*box-sizing\s*:\s*border-box[\s\S]*\}/.test(html),
+  'mobile track title should be centered above the controls with stable width and box sizing'
+);
+assert(
+  /@media\s*\(max-width:\s*600px\)[\s\S]*#track-title\s*\{[\s\S]*bottom\s*:\s*126px[\s\S]*left\s*:\s*50%/.test(html),
+  'mobile track title should be lifted into the blank space above the existing control area without moving the controls'
+);
+assert(
+  /@media\s*\(max-width:\s*600px\)[\s\S]*body\.lyrics-mode\s+#track-title\s*\{[\s\S]*left\s*:\s*50%[\s\S]*transform\s*:\s*translateX\(-50%\)[\s\S]*\}/.test(html),
+  'mobile lyrics-mode track title should keep the same centered alignment'
+);
+assert(
+  /@media\s*\(max-width:\s*600px\)[\s\S]*body\.lyrics-mode\s+\.drag-hint\s*\{[\s\S]*display\s*:\s*none[\s\S]*\}/.test(html),
+  'mobile lyrics mode should hide the swipe hint under the lyrics'
+);
+
+const soundWaveRule = extractCssRule('.sound-wave');
+assert(
+  /position\s*:\s*fixed/.test(soundWaveRule) &&
+  /bottom\s*:\s*24px/.test(soundWaveRule) &&
+  /left\s*:\s*24px/.test(soundWaveRule),
+  'sound wave visualizer should keep the desktop bottom-left anchored implementation'
+);
+assert(
+  /soundWave\.classList\.toggle\(['"]active['"],\s*p\)/.test(html),
+  'sound wave visualizer should keep following playback through the existing active class'
+);
+assert(
+  /@media\s*\(max-width:\s*600px\)[\s\S]*\.sound-wave\s*\{[\s\S]*display\s*:\s*flex[\s\S]*left\s*:\s*20px[\s\S]*bottom\s*:\s*18px[\s\S]*\}/.test(html),
+  'mobile main and lyrics pages should show the same playback-following sound wave component in the lower-left corner'
 );
 
 assert(
@@ -226,8 +264,10 @@ assert(
   'renderNcmLoginState',
   'openNcmLogin',
   'openNcmAccount',
+  'loadAccountTracksForHome',
   'loadNcmPlaylists',
   'loadNcmPlaylistTracks',
+  'applyAccountTracksToHome',
   'renderNcmPlaylists',
   'renderNcmPlaylistTracks',
   'logoutNcm',
@@ -249,32 +289,54 @@ assert(
 );
 
 const loadRecentTracksFromAccount = extractFunction('loadRecentTracksFromAccount');
+const loadAccountTracksForHome = extractFunction('loadAccountTracksForHome');
+const applyAccountTracksToHome = extractFunction('applyAccountTracksToHome');
+const updateTrackInfo = extractFunction('updateTrackInfo');
+const updateTrackTitleFade = extractFunction('updateTrackTitleFade');
 const sanitizeRecentTrack = extractFunction('sanitizeRecentTrack');
 const isValidTrackCover = extractFunction('isValidTrackCover');
+assert(
+  /trackTitle\.classList\.remove\(['"]track-title-fade['"]\)/.test(updateTrackInfo) &&
+  /updateTrackTitleFade\(\)/.test(updateTrackInfo),
+  'updateTrackInfo should reset title fade and re-evaluate it after each song change'
+);
+assert(
+  /const\s+shouldFade\s*=/.test(updateTrackTitleFade) &&
+  /trackTitle\.classList\.toggle\(['"]track-title-fade['"],\s*shouldFade\)/.test(updateTrackTitleFade),
+  'updateTrackTitleFade should toggle the fade class only when the rendered title needs protection'
+);
 assert(
   /fetch\(['"]\/api\/me\/recent-tracks\?limit=6['"]\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(loadRecentTracksFromAccount),
   'loadRecentTracksFromAccount should fetch recent tracks with credentials include'
 );
 assert(
-  /if\s*\(\s*!res\.ok\s*\)\s*return/.test(loadRecentTracksFromAccount) &&
-  /Array\.isArray\(data\.tracks\)/.test(loadRecentTracksFromAccount) &&
-  /data\.tracks\.length/.test(loadRecentTracksFromAccount),
-  'loadRecentTracksFromAccount should preserve default slots when the response is not usable'
+  /loadAccountTracksForHome\(\)/.test(loadRecentTracksFromAccount) &&
+  /applyAccountTracksToHome\(tracks\)/.test(loadRecentTracksFromAccount),
+  'loadRecentTracksFromAccount should fall back to account playlist tracks and then apply the resulting six tracks'
 );
 assert(
-  /SLOT_COLORS\s*\[\s*index\s*%\s*SLOT_COLORS\.length\s*\]/.test(loadRecentTracksFromAccount),
-  'loadRecentTracksFromAccount should assign slot colors from SLOT_COLORS by index'
+  /fetch\(['"]\/api\/me\/playlists['"]\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(loadAccountTracksForHome) &&
+  /fetch\(\s*`\/api\/playlist\/tracks\?id=\$\{encodeURIComponent\(playlistId\)\}&limit=6`\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(loadAccountTracksForHome),
+  'loadAccountTracksForHome should fetch the first playlist and its first six songs with credentials include'
 );
 assert(
-  /currentIdx\s*=\s*0/.test(loadRecentTracksFromAccount) &&
-  /replaceIdx\s*=\s*0/.test(loadRecentTracksFromAccount),
-  'loadRecentTracksFromAccount should reset currentIdx and replaceIdx'
+  /if\s*\(\s*!Array\.isArray\(tracks\)\s*\|\|\s*!tracks\.length\s*\)\s*return\s+false/.test(applyAccountTracksToHome),
+  'applyAccountTracksToHome should report false when there are no account tracks to apply'
 );
 assert(
-  /slice\(0,\s*6\)/.test(loadRecentTracksFromAccount) &&
-  /(while|for)\s*\([^)]*\.length\s*<\s*6/.test(loadRecentTracksFromAccount) &&
-  /slots\s*=\s*nextSlots/.test(loadRecentTracksFromAccount),
-  'loadRecentTracksFromAccount should build exactly 6 slots before replacing slots'
+  /SLOT_COLORS\s*\[\s*index\s*%\s*SLOT_COLORS\.length\s*\]/.test(applyAccountTracksToHome),
+  'applyAccountTracksToHome should assign slot colors from SLOT_COLORS by index'
+);
+assert(
+  /currentIdx\s*=\s*0/.test(applyAccountTracksToHome) &&
+  /replaceIdx\s*=\s*0/.test(applyAccountTracksToHome),
+  'applyAccountTracksToHome should reset currentIdx and replaceIdx'
+);
+assert(
+  /slice\(0,\s*6\)/.test(applyAccountTracksToHome) &&
+  /(while|for)\s*\([^)]*\.length\s*<\s*6/.test(applyAccountTracksToHome) &&
+  /slots\s*=\s*nextSlots/.test(applyAccountTracksToHome),
+  'applyAccountTracksToHome should build exactly 6 slots before replacing slots'
 );
 assert(
   /track\?\.nid/.test(sanitizeRecentTrack) &&
@@ -290,8 +352,8 @@ assert(
   'loadRecentTracksFromAccount should blank invalid covers so gradient fallback works'
 );
 assert(
-  /if\s*\(\s*isPlaying\s*\)\s*loadAndPlay\(slots\[0\]\)/.test(loadRecentTracksFromAccount),
-  'loadRecentTracksFromAccount should reload audio for the displayed recent track when already playing'
+  /if\s*\(\s*isPlaying\s*\)\s*loadAndPlay\(slots\[0\]\)/.test(applyAccountTracksToHome),
+  'applyAccountTracksToHome should reload audio for the displayed account track when already playing'
 );
 [
   'renderCards',
@@ -301,13 +363,13 @@ assert(
   'updateLavaColors',
 ].forEach((name) => {
   assert(
-    new RegExp(`${name}\\(\\)`).test(loadRecentTracksFromAccount),
-    `loadRecentTracksFromAccount should call ${name}()`
+    new RegExp(`${name}\\(\\)`).test(applyAccountTracksToHome),
+    `applyAccountTracksToHome should call ${name}()`
   );
 });
 assert(
-  /if\s*\(\s*lyricsMode\s*\)\s*loadLyricsForCurrent\(\)/.test(loadRecentTracksFromAccount),
-  'loadRecentTracksFromAccount should reload lyrics only when lyricsMode is active'
+  /if\s*\(\s*lyricsMode\s*\)\s*loadLyricsForCurrent\(\)/.test(applyAccountTracksToHome),
+  'applyAccountTracksToHome should reload lyrics only when lyricsMode is active'
 );
 
 const loadLyricsForCurrent = extractFunction('loadLyricsForCurrent');
@@ -321,6 +383,29 @@ assert(
 );
 
 const loadAndPlay = extractFunction('loadAndPlay');
+const goTo = extractFunction('goTo');
+const restoreDisplayedTrack = extractFunction('restoreDisplayedTrack');
+assert(
+  /let\s+playingIdx\s*=\s*null/.test(html) &&
+  /let\s+playRequestSeq\s*=\s*0/.test(html),
+  'player should track the currently playing slot and guard stale play requests'
+);
+assert(
+  /const\s+previousIdx\s*=\s*currentIdx/.test(goTo) &&
+  /const\s+requestedIdx\s*=\s*currentIdx/.test(goTo) &&
+  /const\s+rollbackIdx\s*=\s*Number\.isInteger\(playingIdx\)\s*\?\s*playingIdx\s*:\s*previousIdx/.test(goTo),
+  'goTo should remember the current playing/displayed song before attempting an autoplay switch'
+);
+assert(
+  /const\s+playStarted\s*=\s*await\s+loadAndPlay\(slots\[requestedIdx\],\s*\{\s*requestedIdx\s*\}\)/.test(goTo) &&
+  /if\s*\(\s*!playStarted\s*&&\s*currentIdx\s*===\s*requestedIdx\s*\)\s*\{[\s\S]*restoreDisplayedTrack\(rollbackIdx\)/.test(goTo),
+  'goTo should restore the current playing song page when the requested song cannot play'
+);
+assert(
+  /currentIdx\s*=\s*\(\(index\s*%\s*6\)\s*\+\s*6\)\s*%\s*6/.test(restoreDisplayedTrack) &&
+  /renderCurrentTrackState\(\)/.test(restoreDisplayedTrack),
+  'restoreDisplayedTrack should normalize the slot index and rerender the current song state'
+);
 assert(
   /let\s+urlEndpoint\s*=\s*`\/api\/track\/url\?id=\$\{track\.nid\}&level=\$\{level\}&realIP=\$\{NCM_REAL_IP\}`/.test(loadAndPlay) &&
   /fetch\(\s*urlEndpoint\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(loadAndPlay),
@@ -357,6 +442,14 @@ assert(
 assert(
   /if\s*\(\s*networkFailures\s*===\s*qualityLevels\.length\s*\)\s*\{[\s\S]*showToast\(['"]缃戠粶閿欒['"]\)/.test(loadAndPlay),
   'loadAndPlay should show the network error toast only when every level failed due to fetch errors'
+);
+
+assert(
+  /return\s+false/.test(loadAndPlay) &&
+  /await\s+audio\.play\(\)/.test(loadAndPlay) &&
+  /playingIdx\s*=\s*options\.requestedIdx/.test(loadAndPlay) &&
+  /return\s+true/.test(loadAndPlay),
+  'loadAndPlay should return a success boolean and record the playing slot only after audio.play succeeds'
 );
 
 const startNcmQrLogin = extractFunction('startNcmQrLogin');
@@ -448,18 +541,66 @@ assert(
   'renderNcmPlaylistTracks should let the user select a playlist song into the player'
 );
 
+const ncmAccountLayoutRule = extractCssRule('.ncm-account-layout');
+assert(
+  /grid-template-columns\s*:\s*minmax\(190px,\s*0\.9fr\)\s+minmax\(260px,\s*1\.4fr\)/.test(ncmAccountLayoutRule),
+  'desktop account modal should keep the two-column playlist and song layout'
+);
+assert(
+  /<div\s+class=["']ncm-account-column\s+ncm-playlist-column["']>\s*<span\s+class=["']ncm-playlist-section-label["'][^>]*>[\s\S]*?<\/span>\s*<div\s+id=["']ncm-playlist-list["'][\s\S]*?<\/div>\s*<\/div>/.test(html),
+  'desktop account modal should keep the playlist label and playlist list inside the left column'
+);
+assert(
+  /<div\s+class=["']ncm-account-column\s+ncm-track-column["']>\s*<span\s+class=["']ncm-track-section-label["'][^>]*>[\s\S]*?<\/span>\s*<div\s+id=["']ncm-track-list["'][\s\S]*?<\/div>\s*<\/div>/.test(html),
+  'desktop account modal should keep the song label and song list inside the right column'
+);
+const ncmAccountColumnRule = extractCssRule('.ncm-account-column');
+assert(
+  /display\s*:\s*flex/.test(ncmAccountColumnRule) &&
+  /flex-direction\s*:\s*column/.test(ncmAccountColumnRule) &&
+  /min-width\s*:\s*0/.test(ncmAccountColumnRule),
+  'desktop account modal columns should be explicit flex columns so grid children do not auto-flow into the wrong cells'
+);
+const ncmAccountDividerRule = extractCssRule('.ncm-account-divider');
+assert(
+  /display\s*:\s*none/.test(ncmAccountDividerRule),
+  'desktop account modal should hide the mobile-only playlist/song divider'
+);
+['ncm-playlist-section-label', 'ncm-track-section-label', 'ncm-account-divider'].forEach((className) => {
+  assert(
+    new RegExp(`class=["'][^"']*${className}`).test(html),
+    `mobile account modal should include .${className} for clear playlist/song separation`
+  );
+});
+assert(
+  /@media\s*\(max-width:\s*600px\)[\s\S]*\.ncm-account-layout\s*\{[\s\S]*display\s*:\s*flex[\s\S]*flex-direction\s*:\s*column[\s\S]*\}/.test(html) &&
+  /@media\s*\(max-width:\s*600px\)[\s\S]*\.ncm-account-divider\s*\{[\s\S]*height\s*:\s*1px[\s\S]*\}/.test(html),
+  'mobile account modal should stack playlist and song sections with a visible divider'
+);
+
 const logoutNcm = extractFunction('logoutNcm');
 assert(
   /fetch\(['"]\/api\/auth\/logout['"]\s*,\s*\{[^}]*method\s*:\s*['"]POST['"][^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(logoutNcm),
   'logoutNcm should POST /api/auth/logout with credentials include'
 );
 
+const handleCardTap = extractFunction('handleCardTap');
+const bindCardClicks = extractFunction('bindCardClicks');
 const onDragEnd = extractFunction('onDragEnd');
+assert(
+  /const\s+idx\s*=\s*parseInt\(card\.dataset\.index,\s*10\)/.test(handleCardTap) &&
+  /if\s*\(\s*idx\s*===\s*currentIdx\s*\)[\s\S]*toggleLyricsMode\(\)/.test(handleCardTap),
+  'handleCardTap should enter lyrics mode when tapping the current cover'
+);
+assert(
+  /handleCardTap\(el\)/.test(bindCardClicks),
+  'bindCardClicks should use handleCardTap so desktop and mobile click behavior stay consistent'
+);
 assert(
   /function\s+onDragEnd\s*\(\s*e\s*\)/.test(onDragEnd) &&
   /e\?\.type\s*===\s*['"]touchend['"]/.test(onDragEnd) &&
-  /toggleLyricsMode\(\)/.test(onDragEnd),
-  'mobile touch tap on the active cover should enter lyrics mode instead of being swallowed by drag handling'
+  /handleCardTap\(tappedCard\)/.test(onDragEnd),
+  'mobile touch tap on a cover should delegate to handleCardTap instead of checking a missing active class'
 );
 
 const closeNcmLogin = extractFunction('closeNcmLogin');
