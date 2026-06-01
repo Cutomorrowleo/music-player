@@ -87,13 +87,13 @@ async function start() {
   console.log('========================================');
 }
 
-if (require.main === module) {
+if (process.env.NODE_ENV === 'test') {
+  module.exports = {
+    findLocalApiInsertIndex,
+    insertLocalApiLayersBeforePackageMiddleware,
+    mountLocalApiRoutes,
+    start,
+  };
+} else {
   start();
 }
-
-module.exports = {
-  findLocalApiInsertIndex,
-  insertLocalApiLayersBeforePackageMiddleware,
-  mountLocalApiRoutes,
-  start,
-};

@@ -1,6 +1,9 @@
 const assert = require('assert');
 const http = require('http');
 const { serveNcmApi } = require('NeteaseCloudMusicApi');
+
+process.env.NODE_ENV = 'test';
+
 const { mountLocalApiRoutes, findLocalApiInsertIndex } = require('../server');
 
 function layerPath(layer) {
