@@ -565,6 +565,87 @@
         .cookie-clear-btn:hover { border-color: #f77e7e; color: #f77e7e; }
         .vip-note { font-size: 0.55rem; color: rgba(245,230,208,0.2); text-align: center; margin-top: 14px; }
 
+        .ncm-login-btn {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 42px;
+            min-width: 118px;
+            padding: 0 18px;
+            border-radius: 999px;
+            background: rgba(22,20,20,0.62);
+            border: 1px solid var(--track-accent-line);
+            color: var(--track-accent);
+            font-family: var(--font-heading);
+            font-size: 0.6rem;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            z-index: 1100;
+            box-shadow: inset 0 0 16px rgba(245,230,208,0.04), 0 0 24px var(--track-accent-glow);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            transition: background 0.3s, border-color 0.3s, color 0.3s, box-shadow 0.8s;
+        }
+        .ncm-login-btn:hover {
+            background: var(--track-accent-soft);
+            border-color: var(--track-accent);
+            color: var(--cream);
+        }
+        .ncm-login-overlay {
+            position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+            background: transparent;
+            -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1500; opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.35s, visibility 0.35s, backdrop-filter 0.35s;
+        }
+        .ncm-login-overlay.active {
+            opacity: 1; visibility: visible; pointer-events: all;
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            background: rgba(0,0,0,0.45);
+        }
+        .ncm-login-panel {
+            position: relative; background: #161414;
+            border: 1px solid var(--border-light); border-radius: 16px;
+            max-width: 420px; width: 92%; padding: 32px 28px;
+            opacity: 0; transform: translateY(20px) scale(0.97);
+            transition: opacity 0.4s, transform 0.4s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        .ncm-login-overlay.active .ncm-login-panel { opacity: 1; transform: translateY(0) scale(1); }
+        .ncm-login-title { color: var(--cream); font-family: var(--font-heading); font-size: 1.1rem; margin: 0 0 4px; letter-spacing: 0.05em; }
+        .ncm-login-subtitle { font-size: 0.6rem; color: rgba(245,230,208,0.34); font-family: system-ui, sans-serif; letter-spacing: 0.05em; margin: 0 0 18px; }
+        .ncm-login-qr {
+            width: 188px; height: 188px; margin: 0 auto 14px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 14px; background: rgba(245,230,208,0.04);
+            border: 1px solid rgba(245,230,208,0.1);
+            color: rgba(245,230,208,0.34); font-size: 0.68rem;
+            font-family: system-ui, sans-serif; text-align: center;
+        }
+        .ncm-login-qr img { width: 168px; height: 168px; display: block; border-radius: 8px; }
+        .ncm-login-status {
+            min-height: 20px; margin: 0 0 14px; text-align: center;
+            color: var(--track-accent); font-family: var(--font-heading);
+            font-size: 0.62rem; letter-spacing: 0.08em;
+        }
+        .ncm-login-steps {
+            font-size: 0.7rem; color: rgba(245,230,208,0.5); margin: 0 0 16px; padding-left: 20px;
+            font-family: system-ui, sans-serif; line-height: 1.8;
+        }
+        .ncm-login-actions { display: flex; gap: 8px; }
+        .ncm-login-refresh,
+        .ncm-login-cancel {
+            flex: 1; padding: 10px 18px; border-radius: 30px;
+            font-family: var(--font-heading); font-size: 0.65rem;
+            letter-spacing: 0.1em; cursor: pointer; transition: opacity 0.2s, border-color 0.3s, color 0.3s;
+        }
+        .ncm-login-refresh { background: var(--track-accent); color: #161414; border: none; }
+        .ncm-login-refresh:hover { opacity: 0.85; }
+        .ncm-login-cancel { background: transparent; border: 1px solid var(--border); color: var(--cream); }
+        .ncm-login-cancel:hover { border-color: var(--track-accent); color: var(--track-accent); }
+        .ncm-login-note { font-size: 0.55rem; color: rgba(245,230,208,0.24); text-align: center; margin-top: 14px; }
+
         /* ===== Add Track Floating Button ===== */
         .add-track-btn {
             position: fixed; bottom: 24px; right: 24px;
@@ -967,6 +1048,25 @@
     </div>
 
     <!-- ============ Reactive Toggle + Indicator ============ -->
+    <div id="ncm-login-overlay" class="ncm-login-overlay">
+        <div class="ncm-login-panel" role="dialog" aria-modal="true" aria-labelledby="ncm-login-title">
+            <h2 id="ncm-login-title" class="ncm-login-title">登录网易云</h2>
+            <p class="ncm-login-subtitle">扫码同步最近常听和会员播放权限</p>
+            <div id="ncm-login-qr" class="ncm-login-qr">二维码加载中</div>
+            <p id="ncm-login-status" class="ncm-login-status">等待扫码</p>
+            <ol class="ncm-login-steps">
+                <li>打开网易云音乐</li>
+                <li>扫一扫</li>
+                <li>确认登录</li>
+            </ol>
+            <div class="ncm-login-actions">
+                <button id="ncm-login-refresh" class="ncm-login-refresh" type="button">刷新</button>
+                <button id="ncm-login-cancel" class="ncm-login-cancel" type="button">取消</button>
+            </div>
+            <p class="ncm-login-note">仅保存加密会话，不暴露 Cookie</p>
+        </div>
+    </div>
+
     <button id="reactive-toggle" class="reactive-toggle active" title="特效开关" aria-label="特效开关">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 10s3-3 5-3 4 6 6 6 5-3 5-3"/><path d="M2 17s3-3 5-3 4 6 6 6 5-3 5-3"/>
@@ -975,6 +1075,8 @@
     <span id="reactive-indicator" class="reactive-indicator show">特效 ON</span>
 
     <!-- ============ VIP 登录按钮 ============ -->
+    <button id="ncm-login-btn" class="ncm-login-btn" type="button" aria-label="登录网易云">登录网易云</button>
+
     <button id="vip-btn" class="vip-btn" title="VIP登录" aria-label="VIP登录" onclick="openVipModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 1l3 9h9l-7 5.25 2.75 8.75L12 18 4.25 24 7 15.25 0 10h9z"/>
@@ -1062,6 +1164,124 @@
     }
 
     // --- 6个默认槽位（网易云热门歌曲ID） ---
+    let ncmLoginKey = '';
+    let ncmLoginTimer = null;
+    let ncmUser = null;
+
+    async function fetchNcmMe() {
+        try {
+            const res = await fetch('/api/auth/me', { credentials: 'include' });
+            const data = await res.json();
+            ncmUser = data.loggedIn ? data.user : null;
+            renderNcmLoginState();
+            if (ncmUser && typeof loadRecentTracksFromAccount === 'function') {
+                loadRecentTracksFromAccount();
+            }
+            return ncmUser;
+        } catch (e) {
+            console.warn('获取网易云登录状态失败:', e);
+            renderNcmLoginState();
+            return null;
+        }
+    }
+
+    function renderNcmLoginState() {
+        const btn = document.getElementById('ncm-login-btn');
+        if (!btn) return;
+        btn.textContent = ncmUser && ncmUser.nickname ? ncmUser.nickname : '登录网易云';
+    }
+
+    function openNcmLogin() {
+        const overlay = document.getElementById('ncm-login-overlay');
+        if (!overlay) return;
+        overlay.classList.add('active');
+        startNcmQrLogin();
+        document.getElementById('ncm-login-refresh')?.focus();
+    }
+
+    function closeNcmLogin() {
+        const overlay = document.getElementById('ncm-login-overlay');
+        if (overlay) overlay.classList.remove('active');
+        if (ncmLoginTimer) {
+            clearInterval(ncmLoginTimer);
+            ncmLoginTimer = null;
+        }
+        document.getElementById('ncm-login-btn')?.focus();
+    }
+
+    async function startNcmQrLogin() {
+        const qr = document.getElementById('ncm-login-qr');
+        const status = document.getElementById('ncm-login-status');
+        const qrDataUrlPattern = /^data:image\/(png|jpeg|jpg|webp);base64,/;
+        if (ncmLoginTimer) clearInterval(ncmLoginTimer);
+        ncmLoginTimer = null;
+        ncmLoginKey = '';
+        if (qr) qr.replaceChildren('二维码加载中');
+        if (status) status.textContent = '等待扫码';
+        try {
+            const res = await fetch('/api/auth/qr/start', {
+                method: 'POST',
+                credentials: 'include',
+            });
+            const data = await res.json();
+            if (!data.ok || !data.key) throw new Error(data.error || 'QR start failed');
+            ncmLoginKey = data.key;
+            if (qr) {
+                qr.replaceChildren();
+                if (qrDataUrlPattern.test(data.qrimg || '')) {
+                    const img = document.createElement('img');
+                    img.src = data.qrimg;
+                    img.alt = '网易云登录二维码';
+                    qr.replaceChildren(img);
+                } else {
+                    ncmLoginKey = '';
+                    if (status) status.textContent = '二维码加载失败';
+                    return;
+                }
+            }
+            ncmLoginTimer = setInterval(checkNcmQrLogin, 1800);
+            checkNcmQrLogin();
+        } catch (e) {
+            if (qr) qr.replaceChildren();
+            if (status) status.textContent = '二维码加载失败';
+            console.warn('网易云二维码登录启动失败:', e);
+        }
+    }
+
+    async function checkNcmQrLogin() {
+        const status = document.getElementById('ncm-login-status');
+        if (!ncmLoginKey) return;
+        try {
+            const res = await fetch('/api/auth/qr/status?key=' + encodeURIComponent(ncmLoginKey), {
+                credentials: 'include',
+            });
+            const data = await res.json();
+            if (data.code === 800) {
+                if (status) status.textContent = '二维码已过期';
+                if (ncmLoginTimer) {
+                    clearInterval(ncmLoginTimer);
+                    ncmLoginTimer = null;
+                }
+                ncmLoginKey = '';
+                return;
+            }
+            if (data.loggedIn) {
+                ncmUser = data.user || null;
+                renderNcmLoginState();
+                closeNcmLogin();
+                showToast('网易云登录成功');
+                if (typeof loadRecentTracksFromAccount === 'function') {
+                    loadRecentTracksFromAccount();
+                }
+                return;
+            }
+            if (status && data.message) status.textContent = data.message;
+        } catch (e) {
+            if (status) status.textContent = '登录状态检查失败';
+            console.warn('网易云二维码登录状态检查失败:', e);
+        }
+    }
+
     const DEFAULT_SLOTS = [
         { nid:'1293886117', title:'年少有为', artist:'李荣浩' },
         { nid:'65766',      title:'富士山下', artist:'陈奕迅' },
@@ -1162,6 +1382,63 @@
         renderCards();
         updateContentTransform();
         updateTrackInfo();
+    }
+
+    async function loadRecentTracksFromAccount() {
+        try {
+            const res = await fetch('/api/me/recent-tracks?limit=6', { credentials: 'include' });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!Array.isArray(data.tracks) || !data.tracks.length) return;
+
+            const previousSlots = slots.slice(0, 6);
+            const nextSlots = data.tracks
+                .map((track, index) => sanitizeRecentTrack(track, previousSlots[index] || DEFAULT_SLOTS[index] || {}, index))
+                .filter(Boolean)
+                .slice(0, 6);
+
+            while (nextSlots.length < 6) {
+                const index = nextSlots.length;
+                nextSlots.push(sanitizeRecentTrack(previousSlots[index] || DEFAULT_SLOTS[index] || {}, DEFAULT_SLOTS[index] || {}, index));
+            }
+
+            slots = nextSlots.map((track, index) => ({
+                ...track,
+                color: SLOT_COLORS[index % SLOT_COLORS.length],
+            }));
+            currentIdx = 0;
+            replaceIdx = 0;
+            renderCards();
+            updateContentTransform();
+            updateSlotDots();
+            updateTrackInfo();
+            updateLavaColors();
+            if (lyricsMode) loadLyricsForCurrent();
+            if (isPlaying) loadAndPlay(slots[0]);
+        } catch (error) {
+            console.warn('load recent tracks failed', error);
+            showToast('\u6700\u8fd1\u5e38\u542c\u52a0\u8f7d\u5931\u8d25');
+        }
+    }
+
+    function sanitizeRecentTrack(track, fallback, index) {
+        if (!track?.nid) return null;
+        const defaultSlot = DEFAULT_SLOTS[index] || {};
+        const title = track.title || fallback.title || defaultSlot.title || 'Unknown Track';
+        const artist = track.artist || fallback.artist || defaultSlot.artist || 'Unknown Artist';
+        const cover = isValidTrackCover(track.cover) ? fixCover(track.cover) : '';
+        return {
+            ...track,
+            nid: track.nid,
+            title,
+            artist,
+            cover,
+            album: track.album || fallback.album || '',
+        };
+    }
+
+    function isValidTrackCover(cover) {
+        return typeof cover === 'string' && /^(https?:\/\/|data:image\/)/.test(cover);
     }
 
     // ============================================================
@@ -1444,7 +1721,7 @@
         renderLyrics();
         if (!track?.nid) return;
         try {
-            const res = await apiFetch(`/lyric?id=${track.nid}`);
+            const res = await fetch(`/api/track/lyric?id=${track.nid}`, { credentials: 'include' });
             const data = await res.json();
             const originalRows = parseLrc(data.lrc?.lyric || '');
             const translationRows = parseLrc(data.tlyric?.lyric || data.romalrc?.lyric || '');
@@ -1557,9 +1834,32 @@
         try {
             // lossless获取完整音频（非30秒试听）
             let url = null;
-            for (const level of ['lossless', 'exhigh', 'higher', 'standard']) {
-                const res = await apiFetch(`/song/url/v1?id=${track.nid}&level=${level}&realIP=${NCM_REAL_IP}`);
-                const data = await res.json();
+            let networkFailures = 0;
+            const qualityLevels = ['lossless', 'exhigh', 'higher', 'standard'];
+            for (const level of qualityLevels) {
+                let res;
+                let data;
+                let urlEndpoint = `/api/track/url?id=${track.nid}&level=${level}&realIP=${NCM_REAL_IP}`;
+                if (vipCookie) {
+                    urlEndpoint += '&cookie=' + encodeURIComponent(vipCookie);
+                }
+                try {
+                    res = await fetch(urlEndpoint, { credentials: 'include' });
+                } catch (error) {
+                    networkFailures++;
+                    continue;
+                }
+                try {
+                    data = await res.json();
+                } catch (error) {
+                    continue;
+                }
+                if (!data || typeof data !== 'object') continue;
+                if (res.status === 403 || data.error === 'NO_PLAY_PERMISSION') {
+                    continue;
+                }
+                if (!res.ok) continue;
+                if (!data.data?.[0]?.url) continue;
                 if (data.data?.[0]?.url) {
                     url = data.data[0].url.replace(/^http:/, 'https:');
                     break;
@@ -1568,6 +1868,8 @@
             if (url) {
                 audio.src = url;
                 audio.play().then(() => setPlaying(true)).catch(() => showToast('播放失败'));
+            } else if (networkFailures === qualityLevels.length) {
+                showToast('缃戠粶閿欒');
             } else {
                 showToast('无播放源（版权/地区限制或需登录）');
             }
@@ -2236,7 +2538,7 @@
             case 'ArrowLeft':  e.preventDefault(); goPrev(); break;
             case 'ArrowRight': e.preventDefault(); goNext(); break;
             case ' ':          e.preventDefault(); togglePlay(); break;
-            case 'Escape':     closePopup(); closeSearch(); toggleLyricsMode(false); break;
+            case 'Escape':     closePopup(); closeSearch(); closeNcmLogin(); toggleLyricsMode(false); break;
         }
     });
 
@@ -2270,10 +2572,18 @@
         }
     });
 
+    document.getElementById('ncm-login-btn')?.addEventListener('click', openNcmLogin);
+    document.getElementById('ncm-login-refresh')?.addEventListener('click', startNcmQrLogin);
+    document.getElementById('ncm-login-cancel')?.addEventListener('click', closeNcmLogin);
+    document.getElementById('ncm-login-overlay')?.addEventListener('click', (e) => {
+        if (e.target.id === 'ncm-login-overlay') closeNcmLogin();
+    });
+
     // ============================================================
     //  BOOT
     // ============================================================
     init().then(() => {
+        fetchNcmMe();
         updateVipStatus();
         console.log('%c🎵 6槽音乐播放器已就绪 %c| %c网易云API %c| %c100%还原 %c| %cVIP:%s',
             'color:#f5e6d0;font-size:16px;', '', 'color:#f5a623;', '', 'color:#8bc34a;', '',

@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node tests/music-player-regression.test.js && node tests/session-store.test.js && node tests/track-normalizer.test.js && node tests/auth-contract.test.js && node tests/local-server-routing.test.js"
   },
   "keywords": [],
   "author": "",

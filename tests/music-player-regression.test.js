@@ -25,6 +25,19 @@ function extractCssRule(selector) {
   return html.slice(braceStart + 1, braceEnd);
 }
 
+function extractInitThenBlock() {
+  const start = html.indexOf('init().then(() =>');
+  assert.notStrictEqual(start, -1, 'init().then boot block should exist');
+  const braceStart = html.indexOf('{', start);
+  let depth = 0;
+  for (let i = braceStart; i < html.length; i++) {
+    if (html[i] === '{') depth++;
+    if (html[i] === '}') depth--;
+    if (depth === 0) return html.slice(start, i + 1);
+  }
+  throw new Error('init().then boot block should close');
+}
+
 const updateCardScales = extractFunction('updateCardScales');
 assert(
   /dataset\.index/.test(updateCardScales) || /getAttribute\(['"]data-index['"]\)/.test(updateCardScales),
@@ -78,6 +91,302 @@ assert(
 assert(
   !/\.lyrics-list\s*\{\s*padding\s*:\s*60px\s+12px\s+72px/.test(html),
   'mobile lyrics list should not keep the old top padding that misaligns the first lyric'
+);
+
+assert(
+  /id=["']ncm-login-btn["']/.test(html),
+  'NetEase Cloud login button should be rendered'
+);
+
+assert(
+  /<button\s+id=["']ncm-login-btn["'][^>]*>\s*登录网易云\s*<\/button>/.test(html),
+  'NetEase Cloud login button should default to 登录网易云'
+);
+
+const ncmLoginBtnRule = extractCssRule('.ncm-login-btn');
+assert(
+  /position\s*:\s*fixed/.test(ncmLoginBtnRule),
+  'NetEase Cloud login button should be fixed and not affect layout flow'
+);
+assert(
+  /top\s*:\s*20px/.test(ncmLoginBtnRule),
+  'NetEase Cloud login button should align with the top control row'
+);
+assert(
+  /left\s*:\s*50%/.test(ncmLoginBtnRule),
+  'NetEase Cloud login button should be horizontally centered'
+);
+assert(
+  /height\s*:\s*42px/.test(ncmLoginBtnRule),
+  'NetEase Cloud login button should keep the frozen top control height'
+);
+assert(
+  /transform\s*:\s*translateX\(-50%\)/.test(ncmLoginBtnRule),
+  'NetEase Cloud login button should use translateX(-50%) centering'
+);
+
+assert(
+  /id=["']ncm-login-overlay["']/.test(html),
+  'NetEase Cloud login overlay should be rendered'
+);
+assert(
+  /id=["']ncm-login-overlay["'][^>]*(role=["']dialog["']|aria-modal=["']true["']|aria-labelledby=["']ncm-login-title["'])/s.test(html) ||
+  /id=["']ncm-login-overlay["'][^>]*role=["']dialog["'][^>]*aria-modal=["']true["'][^>]*aria-labelledby=["']ncm-login-title["']/s.test(html) ||
+  /class=["']ncm-login-panel["'][^>]*role=["']dialog["'][^>]*aria-modal=["']true["'][^>]*aria-labelledby=["']ncm-login-title["']/s.test(html),
+  'NetEase Cloud login dialog should expose role, aria-modal, and aria-labelledby'
+);
+assert(
+  /id=["']ncm-login-title["']/.test(html),
+  'NetEase Cloud login title should have an id for aria-labelledby'
+);
+
+[
+  '登录网易云',
+  '扫码同步最近常听和会员播放权限',
+  '等待扫码',
+  '打开网易云音乐',
+  '扫一扫',
+  '确认登录',
+  '刷新',
+  '取消',
+  '仅保存加密会话，不暴露 Cookie',
+].forEach((text) => {
+  assert(
+    html.includes(text),
+    `NetEase Cloud login modal should include required text: ${text}`
+  );
+});
+
+['ncmLoginKey', 'ncmLoginTimer', 'ncmUser'].forEach((name) => {
+  assert(
+    new RegExp(`let\\s+${name}\\b`).test(html),
+    `${name} state variable should be declared`
+  );
+});
+
+[
+  'fetchNcmMe',
+  'renderNcmLoginState',
+  'openNcmLogin',
+  'closeNcmLogin',
+  'startNcmQrLogin',
+  'checkNcmQrLogin',
+].forEach((name) => {
+  extractFunction(name);
+});
+
+const fetchNcmMe = extractFunction('fetchNcmMe');
+assert(
+  /fetch\(['"]\/api\/auth\/me['"]\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(fetchNcmMe),
+  'fetchNcmMe should call /api/auth/me with credentials include'
+);
+assert(
+  /renderNcmLoginState\(\)[\s\S]*if\s*\(\s*ncmUser\s*&&\s*typeof\s+loadRecentTracksFromAccount\s*===\s*['"]function['"]\s*\)[\s\S]*loadRecentTracksFromAccount\(\)/.test(fetchNcmMe),
+  'fetchNcmMe should call loadRecentTracksFromAccount with a typeof guard when ncmUser exists'
+);
+
+const loadRecentTracksFromAccount = extractFunction('loadRecentTracksFromAccount');
+const sanitizeRecentTrack = extractFunction('sanitizeRecentTrack');
+const isValidTrackCover = extractFunction('isValidTrackCover');
+assert(
+  /fetch\(['"]\/api\/me\/recent-tracks\?limit=6['"]\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(loadRecentTracksFromAccount),
+  'loadRecentTracksFromAccount should fetch recent tracks with credentials include'
+);
+assert(
+  /if\s*\(\s*!res\.ok\s*\)\s*return/.test(loadRecentTracksFromAccount) &&
+  /Array\.isArray\(data\.tracks\)/.test(loadRecentTracksFromAccount) &&
+  /data\.tracks\.length/.test(loadRecentTracksFromAccount),
+  'loadRecentTracksFromAccount should preserve default slots when the response is not usable'
+);
+assert(
+  /SLOT_COLORS\s*\[\s*index\s*%\s*SLOT_COLORS\.length\s*\]/.test(loadRecentTracksFromAccount),
+  'loadRecentTracksFromAccount should assign slot colors from SLOT_COLORS by index'
+);
+assert(
+  /currentIdx\s*=\s*0/.test(loadRecentTracksFromAccount) &&
+  /replaceIdx\s*=\s*0/.test(loadRecentTracksFromAccount),
+  'loadRecentTracksFromAccount should reset currentIdx and replaceIdx'
+);
+assert(
+  /slice\(0,\s*6\)/.test(loadRecentTracksFromAccount) &&
+  /(while|for)\s*\([^)]*\.length\s*<\s*6/.test(loadRecentTracksFromAccount) &&
+  /slots\s*=\s*nextSlots/.test(loadRecentTracksFromAccount),
+  'loadRecentTracksFromAccount should build exactly 6 slots before replacing slots'
+);
+assert(
+  /track\?\.nid/.test(sanitizeRecentTrack) &&
+  /Unknown Track/.test(sanitizeRecentTrack) &&
+  /Unknown Artist/.test(sanitizeRecentTrack),
+  'loadRecentTracksFromAccount should require nid and sanitize title and artist fallbacks'
+);
+assert(
+  /isValidTrackCover/.test(sanitizeRecentTrack) &&
+  /fixCover\(track\.cover\)/.test(sanitizeRecentTrack) &&
+  /\?\s*fixCover\(track\.cover\)\s*:\s*''/.test(sanitizeRecentTrack) &&
+  /https\?:\\\/\\\/\|data:image\\\//.test(isValidTrackCover),
+  'loadRecentTracksFromAccount should blank invalid covers so gradient fallback works'
+);
+assert(
+  /if\s*\(\s*isPlaying\s*\)\s*loadAndPlay\(slots\[0\]\)/.test(loadRecentTracksFromAccount),
+  'loadRecentTracksFromAccount should reload audio for the displayed recent track when already playing'
+);
+[
+  'renderCards',
+  'updateContentTransform',
+  'updateSlotDots',
+  'updateTrackInfo',
+  'updateLavaColors',
+].forEach((name) => {
+  assert(
+    new RegExp(`${name}\\(\\)`).test(loadRecentTracksFromAccount),
+    `loadRecentTracksFromAccount should call ${name}()`
+  );
+});
+assert(
+  /if\s*\(\s*lyricsMode\s*\)\s*loadLyricsForCurrent\(\)/.test(loadRecentTracksFromAccount),
+  'loadRecentTracksFromAccount should reload lyrics only when lyricsMode is active'
+);
+
+const loadLyricsForCurrent = extractFunction('loadLyricsForCurrent');
+assert(
+  /fetch\(\s*`\/api\/track\/lyric\?id=\$\{track\.nid\}`\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(loadLyricsForCurrent),
+  'loadLyricsForCurrent should use /api/track/lyric with credentials include'
+);
+assert(
+  !/apiFetch\(\s*`\/lyric/.test(loadLyricsForCurrent),
+  'loadLyricsForCurrent should no longer call apiFetch(`/lyric`)'
+);
+
+const loadAndPlay = extractFunction('loadAndPlay');
+assert(
+  /let\s+urlEndpoint\s*=\s*`\/api\/track\/url\?id=\$\{track\.nid\}&level=\$\{level\}&realIP=\$\{NCM_REAL_IP\}`/.test(loadAndPlay) &&
+  /fetch\(\s*urlEndpoint\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(loadAndPlay),
+  'loadAndPlay should use /api/track/url with credentials include'
+);
+assert(
+  !/apiFetch\(\s*`\/song\/url\/v1/.test(loadAndPlay),
+  'loadAndPlay should no longer call apiFetch(`/song/url/v1`)'
+);
+assert(
+  /\['lossless',\s*'exhigh',\s*'higher',\s*'standard'\]/.test(loadAndPlay),
+  'loadAndPlay should keep trying the existing quality levels'
+);
+assert(
+  /res\.status\s*===\s*403/.test(loadAndPlay) && /NO_PLAY_PERMISSION/.test(loadAndPlay) && /continue/.test(loadAndPlay),
+  'loadAndPlay should continue to the next level on 403 or NO_PLAY_PERMISSION'
+);
+assert(
+  /urlEndpoint\s*\+=\s*['"]&cookie=['"]\s*\+\s*encodeURIComponent\(vipCookie\)/.test(loadAndPlay),
+  'loadAndPlay should append vipCookie to /api/track/url as a compatibility bridge'
+);
+assert(
+  /let\s+networkFailures\s*=\s*0/.test(loadAndPlay) &&
+  /try\s*\{[\s\S]*await\s+fetch\([\s\S]*\}\s*catch\s*\([^)]*\)\s*\{[\s\S]*networkFailures\+\+[\s\S]*continue[\s\S]*\}/.test(loadAndPlay) &&
+  /try\s*\{[\s\S]*await\s+res\.json\(\)[\s\S]*\}\s*catch\s*\([^)]*\)\s*\{[\s\S]*continue[\s\S]*\}/.test(loadAndPlay),
+  'loadAndPlay should isolate fetch and JSON failures per quality level'
+);
+assert(
+  /if\s*\(\s*!res\.ok\s*\)\s*continue/.test(loadAndPlay) &&
+  /if\s*\(\s*!data\s*\|\|\s*typeof\s+data\s*!==\s*['"]object['"]\s*\)\s*continue/.test(loadAndPlay) &&
+  /if\s*\(\s*!data\.data\?\.\[0\]\?\.url\s*\)\s*continue/.test(loadAndPlay),
+  'loadAndPlay should continue on malformed, non-ok, and no-url responses'
+);
+assert(
+  /if\s*\(\s*networkFailures\s*===\s*qualityLevels\.length\s*\)\s*\{[\s\S]*showToast\(['"]缃戠粶閿欒['"]\)/.test(loadAndPlay),
+  'loadAndPlay should show the network error toast only when every level failed due to fetch errors'
+);
+
+const startNcmQrLogin = extractFunction('startNcmQrLogin');
+assert(
+  /fetch\(['"]\/api\/auth\/qr\/start['"]\s*,\s*\{[^}]*method\s*:\s*['"]POST['"][^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(startNcmQrLogin),
+  'startNcmQrLogin should POST /api/auth/qr/start with credentials include'
+);
+assert(
+  /\^data:image\\\/\(png\|jpeg\|jpg\|webp\);base64,/.test(startNcmQrLogin),
+  'startNcmQrLogin should validate QR images as expected image data URLs'
+);
+assert(
+  /document\.createElement\(['"]img['"]\)/.test(startNcmQrLogin) &&
+  /\.src\s*=\s*data\.qrimg/.test(startNcmQrLogin) &&
+  /\.alt\s*=/.test(startNcmQrLogin) &&
+  /replaceChildren\([^)]*img[^)]*\)/.test(startNcmQrLogin),
+  'startNcmQrLogin should create the QR img safely and replace children'
+);
+assert(
+  !/innerHTML\s*=\s*data\.qrimg/.test(startNcmQrLogin) &&
+  !/innerHTML\s*=\s*[^;]*\$\{data\.qrimg\}/s.test(startNcmQrLogin),
+  'startNcmQrLogin should not interpolate data.qrimg through innerHTML'
+);
+assert(
+  /replaceChildren\(\)/.test(startNcmQrLogin),
+  'startNcmQrLogin should safely clear the QR container for invalid or missing images'
+);
+
+const checkNcmQrLogin = extractFunction('checkNcmQrLogin');
+assert(
+  /fetch\(['"]\/api\/auth\/qr\/status\?key=['"]\s*\+\s*encodeURIComponent\(ncmLoginKey\)\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(checkNcmQrLogin),
+  'checkNcmQrLogin should call /api/auth/qr/status with credentials include'
+);
+assert(
+  /ncmUser\s*=\s*data\.user\s*\|\|\s*null/.test(checkNcmQrLogin) && /renderNcmLoginState\(\)/.test(checkNcmQrLogin),
+  'QR success should store the returned user and render the nickname state'
+);
+assert(
+  /typeof\s+loadRecentTracksFromAccount\s*===\s*['"]function['"]/.test(checkNcmQrLogin),
+  'QR success should guard loadRecentTracksFromAccount for Task 6'
+);
+assert(
+  /data\.code\s*===\s*800/.test(checkNcmQrLogin) &&
+  /二维码已过期/.test(checkNcmQrLogin) &&
+  /clearInterval\(ncmLoginTimer\)/.test(checkNcmQrLogin) &&
+  /ncmLoginTimer\s*=\s*null/.test(checkNcmQrLogin) &&
+  /ncmLoginKey\s*=\s*['"]['"]/.test(checkNcmQrLogin),
+  'checkNcmQrLogin should stop polling and clear state when QR code expires'
+);
+
+const renderNcmLoginState = extractFunction('renderNcmLoginState');
+assert(
+  /btn\.textContent\s*=\s*ncmUser\s*&&\s*ncmUser\.nickname\s*\?\s*ncmUser\.nickname\s*:\s*['"]登录网易云['"]/.test(renderNcmLoginState),
+  'renderNcmLoginState should show nickname after login and 登录网易云 before login'
+);
+
+const openNcmLogin = extractFunction('openNcmLogin');
+assert(
+  /document\.getElementById\(['"]ncm-login-(refresh|cancel)['"]\)\?\.focus\(\)/.test(openNcmLogin) ||
+  /document\.getElementById\(['"]ncm-login-(refresh|cancel)['"]\)[\s\S]*\.focus\(\)/.test(openNcmLogin),
+  'openNcmLogin should focus a modal action button'
+);
+
+const closeNcmLogin = extractFunction('closeNcmLogin');
+assert(
+  /document\.getElementById\(['"]ncm-login-btn['"]\)\?\.focus\(\)/.test(closeNcmLogin) ||
+  /document\.getElementById\(['"]ncm-login-btn['"]\)[\s\S]*\.focus\(\)/.test(closeNcmLogin),
+  'closeNcmLogin should restore focus to the login button'
+);
+
+const bootBlock = extractInitThenBlock();
+assert(
+  /updateVipStatus\(\)/.test(bootBlock) && /fetchNcmMe\(\)/.test(bootBlock),
+  'init().then boot block should call both updateVipStatus() and fetchNcmMe()'
+);
+
+assert(
+  /case\s+['"]Escape['"]\s*:[^;]*closeNcmLogin\(\)/s.test(html) ||
+  /case\s+['"]Escape['"]\s*:[\s\S]*closeNcmLogin\(\)[\s\S]*break/.test(html),
+  'Escape key handling should close the NetEase Cloud login dialog'
+);
+
+assert(
+  !/body\.logged-in\s+\.icon-cards/.test(html),
+  'login state should not alter carousel layout with body.logged-in .icon-cards'
+);
+assert(
+  !/body\.ncm-login-open\s+\.icon-cards/.test(html),
+  'login state should not alter carousel layout with body.ncm-login-open .icon-cards'
+);
+assert(
+  !/\.ncm-login-overlay\s+\.icon-cards/.test(html),
+  'login overlay should not style carousel layout'
 );
 
 console.log('music player regression checks passed');
