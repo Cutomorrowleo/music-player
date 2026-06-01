@@ -11,9 +11,9 @@
 
 ## Current Position
 
-- Status: Task 8 in progress.
-- Active task: Production Configuration and Deploy.
-- Active worker: pending.
+- Status: Implementation and deployment completed.
+- Active task: none.
+- Active worker: none.
 
 ## Completed Tasks
 
@@ -61,7 +61,14 @@
   - Screenshots: `qa-screenshot-20260529-ncm-login-top.png`, `qa-screenshot-20260529-ncm-login-modal.png`.
   - Additional fix during verification: local Express dev server now mounts `/api/auth/*`, `/api/me/recent-tracks`, and `/api/track/*` before the package `/api` proxy route.
   - Files changed: `server.js`, `tests/local-server-routing.test.js`, `package.json`.
+- Task 8: Production Configuration and Deploy.
+  - GitHub: pushed to `Cutomorrowleo/music-player` `main`.
+  - Commits: `03b0217` (`Add NetEase account login backend`) and `9376e3f` (`Fix Vercel server entry startup`).
+  - Vercel: project `music`, production deployment `dpl_FSrT9ijnaaJgjiHAFDH113t58ikx`, state `READY`, commit `9376e3fc7bf418197acfb01af0a94aea51561604`.
+  - Production URL: `https://music-ten-beta.vercel.app/`.
+  - Production verification: home page returned HTTP 200 and contains `EchoRoom` plus `ncm-login-btn`; `POST /api/auth/qr/start` returned HTTP 200 with a NetEase QR image payload.
+  - Remaining production hardening: confirm Vercel has `SESSION_SECRET`, `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN` configured for secure multi-instance session persistence. The available tools could verify deployment status but could not list or set environment variables.
 
 ## Next Task
 
-- Finish Task 8: Production Configuration and Deploy.
+- None.
