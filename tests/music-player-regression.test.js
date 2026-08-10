@@ -3,6 +3,21 @@ const fs = require('fs');
 const path = require('path');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'song.html'), 'utf8');
+const vercelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vercel.json'), 'utf8'));
+
+const genericNcmRoute = vercelConfig.routes.find((route) => route.src === '/api/(.*)');
+assert.strictEqual(
+  genericNcmRoute?.dest,
+  '/api/[...ncm].js?ncm=$1',
+  'Vercel should route public music API paths to the generated catch-all function file'
+);
+
+const authMeRoute = vercelConfig.routes.find((route) => route.src === '/api/auth/me');
+assert.strictEqual(
+  authMeRoute?.dest,
+  '/api/auth/me.js',
+  'Vercel should route dedicated APIs to their generated function files before the catch-all route'
+);
 
 assert(
   /const\s+API\s*=\s*['"]\/api['"]/.test(html),

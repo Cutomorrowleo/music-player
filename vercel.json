@@ -8,8 +8,44 @@
   ],
   "routes": [
     {
+      "src": "/api/auth/qr/start",
+      "dest": "/api/auth/qr/start.js"
+    },
+    {
+      "src": "/api/auth/qr/status",
+      "dest": "/api/auth/qr/status.js"
+    },
+    {
+      "src": "/api/auth/me",
+      "dest": "/api/auth/me.js"
+    },
+    {
+      "src": "/api/auth/logout",
+      "dest": "/api/auth/logout.js"
+    },
+    {
+      "src": "/api/me/recent-tracks",
+      "dest": "/api/me/recent-tracks.js"
+    },
+    {
+      "src": "/api/me/playlists",
+      "dest": "/api/me/playlists.js"
+    },
+    {
+      "src": "/api/playlist/tracks",
+      "dest": "/api/playlist/tracks.js"
+    },
+    {
+      "src": "/api/track/url",
+      "dest": "/api/track/url.js"
+    },
+    {
+      "src": "/api/track/lyric",
+      "dest": "/api/track/lyric.js"
+    },
+    {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "/api/[...ncm].js?ncm=$1"
     },
     {
       "src": "/covers/(.*)",
