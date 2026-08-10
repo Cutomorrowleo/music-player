@@ -1,6 +1,7 @@
 const path = require('path');
 const express = require('express');
 const { serveNcmApi } = require('NeteaseCloudMusicApi');
+const ncmProxyHandler = require('./api/[...ncm]');
 
 const localApiRoutes = [
   ['/api/auth/qr/start', require('./api/auth/qr/start')],
@@ -57,6 +58,15 @@ function mountLocalApiRoutes(app) {
         next(error);
       }
     });
+  });
+
+  app.all('/api/*', async (req, res, next) => {
+    try {
+      req.query.ncm = req.params[0];
+      await ncmProxyHandler(req, res);
+    } catch (error) {
+      next(error);
+    }
   });
 
   insertLocalApiLayersBeforePackageMiddleware(app, stackStart);

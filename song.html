@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>音乐播放器 - 网易云音乐</title>
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23f5e6d0'/></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Special+Gothic+Expanded+One&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Abril+Fatface&amp;family=Special+Gothic+Expanded+One&amp;display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Abril+Fatface&amp;family=Special+Gothic+Expanded+One&amp;display=swap"></noscript>
     <style>
         /* ============================================================
            100% 还原 gobzzzmusicplayer2024 视觉 + 网易云集成
@@ -953,6 +957,7 @@
         /* ===== Responsive ===== */
         @media (max-width: 600px) {
             body { padding: 4% 4% 140px; justify-content: center; }
+            .paper-bg, .grain-overlay { display: none; }
             .icon-cards { width: 55vw; height: 130vw; max-width: none; max-height: none; perspective: 650px; }
             .icon-cards__item { width: 38vw; height: 38vw; max-width: none; max-height: none; }
             .gapgutton { position: fixed; bottom: 12px; left: 0; right: 0; gap: 14px; margin-bottom: 0; z-index: 50; justify-content: center; }
@@ -964,8 +969,8 @@
             h1 { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 76px); left: 0; right: 0; z-index: 45; pointer-events: none; font-size: clamp(0.75rem, 3.5vw, 1.1rem); margin: 0 0 4px; }
             .ncm-login-btn { top: calc(env(safe-area-inset-top, 0px) + 20px); max-width: 34vw; min-width: 0; padding: 0 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             #track-title { position: fixed; bottom: 126px; left: 50%; right: auto; transform: translateX(-50%); width: min(94vw, 620px); max-width: min(94vw, 620px); text-align: center; box-sizing: border-box; padding: 0 6px; font-size: clamp(1rem, 5vw, 1.38rem); min-height: auto; margin: 0; z-index: 50; }
-            .lava-bg { filter: blur(30px); }
-            .lava-blob { filter: blur(20px); }
+            .lava-bg { filter: blur(18px); }
+            .lava-blob { filter: none; }
             .sound-wave { display: flex; left: 20px; bottom: 18px; height: 28px; gap: 2px; z-index: 55; }
             .sound-wave span { width: 2.2px; }
             .add-track-btn { bottom: 16px; right: 16px; width: 42px; height: 42px; }
@@ -1028,6 +1033,9 @@
             .icon-cards { width: 70vw; max-width: 520px; }
             .icon-cards__item { width: 20vw; height: 20vw; max-width: 220px; max-height: 220px; }
             .popup-panel { max-width: 580px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .grain-overlay { display: none; }
         }
         #playlist { display: none; }
     </style>
@@ -1286,7 +1294,7 @@
     //  6槽循环替换 + 本地网易云API + 100%还原原站视觉
     // ============================================================
 
-    const API = '';
+    const API = '/api';
 
     // ============================================================
     //  VIP Cookie 管理
@@ -1297,6 +1305,8 @@
         let url = API + path;
         if (vipCookie) {
             url += (url.includes('?') ? '&' : '?') + 'cookie=' + encodeURIComponent(vipCookie);
+        } else {
+            url += (url.includes('?') ? '&' : '?') + 'noCookie=1';
         }
         return fetch(url);
     }
@@ -1720,46 +1730,55 @@
     // ============================================================
     //  INIT — 从本地API获取6首默认歌曲的封面和专辑信息
     // ============================================================
-    function fixCover(url) { return url ? url.replace(/^http:/, 'https:') : ''; }
+    function fixCover(url) {
+        if (!url) return '';
+        const secureUrl = url.replace(/^http:/, 'https:');
+        try {
+            const parsed = new URL(secureUrl);
+            if (/\.music\.126\.net$/i.test(parsed.hostname)) {
+                parsed.searchParams.set('param', '420y420');
+            }
+            return parsed.toString();
+        } catch (error) {
+            return secureUrl;
+        }
+    }
     function getArtistName(song) {
         const list = song.ar || song.artists || [];
         return list.length ? list.map(a => a.name).join('/') : '未知歌手';
     }
 
     async function init() {
-        // 并行获取6首歌的详情
-        const results = await Promise.all(DEFAULT_SLOTS.map(async (s) => {
-            try {
-                const res = await apiFetch(`/song/detail?ids=${s.nid}`);
-                const data = await res.json();
-                if (data.songs && data.songs[0]) {
-                    const song = data.songs[0];
-                    return {
-                        nid: s.nid,
-                        title: song.name || s.title,
-                        artist: getArtistName(song),
-                        cover: fixCover(song.al?.picUrl),
-                        album: song.al ? song.al.name : '',
-                    };
-                }
-            } catch(e) { console.warn('获取歌曲详情失败:', s.title, e); }
-            // 降级：用搜索获取封面
-            try {
-                const res = await apiFetch(`/search?keywords=${encodeURIComponent(s.artist + ' ' + s.title)}&limit=1`);
-                const data = await res.json();
-                const song = data.result?.songs?.[0];
-                if (song) {
-                    return {
-                        nid: s.nid,
-                        title: song.name || s.title,
-                        artist: getArtistName(song),
-                        cover: fixCover(song.al?.picUrl),
-                        album: song.al ? song.al.name : '',
-                    };
-                }
-            } catch(e) {}
-            return { nid: s.nid, title: s.title, artist: s.artist, cover: '', album: '' };
+        const fallbackTracks = DEFAULT_SLOTS.map((slot) => ({
+            nid: slot.nid,
+            title: slot.title,
+            artist: slot.artist,
+            cover: '',
+            album: '',
         }));
+        let results = fallbackTracks;
+
+        try {
+            const ids = DEFAULT_SLOTS.map((slot) => slot.nid).join(',');
+            const res = await apiFetch(`/song/detail?ids=${encodeURIComponent(ids)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            const data = await res.json();
+            const songsById = new Map((data.songs || []).map((song) => [String(song.id), song]));
+            results = DEFAULT_SLOTS.map((slot, index) => {
+                const song = songsById.get(String(slot.nid));
+                if (!song) return fallbackTracks[index];
+                return {
+                    nid: slot.nid,
+                    title: song.name || slot.title,
+                    artist: getArtistName(song),
+                    cover: fixCover(song.al?.picUrl),
+                    album: song.al?.name || '',
+                };
+            });
+        } catch (error) {
+            console.warn('批量获取歌曲详情失败，使用默认信息:', error);
+        }
 
         slots = results.map((track, index) => ({
             ...track,

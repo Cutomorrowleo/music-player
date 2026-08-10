@@ -19,6 +19,17 @@ function setCookies(res, cookies) {
   );
 }
 
+function setPublicCacheHeaders(res, path, query, method) {
+  if (method !== 'GET' || query.cookie || !['song/detail', 'search'].includes(path)) return;
+
+  const maxAge = path === 'song/detail' ? 86400 : 600;
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.setHeader(
+    'Vercel-CDN-Cache-Control',
+    `public, max-age=${maxAge}, stale-while-revalidate=604800`,
+  );
+}
+
 module.exports = async function handler(req, res) {
   const path = normalizePathParam(req.query.ncm);
   const fnName = path.replace(/\//g, '_');
@@ -36,6 +47,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const response = await apiFn(query);
+    setPublicCacheHeaders(res, path, query, req.method);
     if (!query.noCookie) setCookies(res, response.cookie);
     res.status(response.status || 200).json(response.body);
   } catch (error) {

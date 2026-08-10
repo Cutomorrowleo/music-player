@@ -1,13 +1,29 @@
 {
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/song.html"
-    }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "builds": [
+    { "src": "song.html", "use": "@vercel/static" },
+    { "src": "covers/**", "use": "@vercel/static" },
+    { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
-  "functions": {
-    "api/[...ncm].js": {
-      "maxDuration": 10
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/covers/(.*)",
+      "dest": "/covers/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400"
+      }
+    },
+    {
+      "src": "/(?:song\\.html)?",
+      "dest": "/song.html",
+      "headers": {
+        "Cache-Control": "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800"
+      }
     }
-  }
+  ]
 }

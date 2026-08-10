@@ -4,6 +4,28 @@ const path = require('path');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'song.html'), 'utf8');
 
+assert(
+  /const\s+API\s*=\s*['"]\/api['"]/.test(html),
+  'browser requests should use the Vercel /api function prefix so the player page can be served statically'
+);
+
+const apiFetch = extractFunction('apiFetch');
+assert(
+  /noCookie=1/.test(apiFetch),
+  'anonymous public API requests should opt out of cookies so Vercel can cache metadata safely'
+);
+
+assert(
+  /DEFAULT_SLOTS\.map\(\(slot\)\s*=>\s*slot\.nid\)\.join\(['"],['"]\)/.test(html) &&
+  /apiFetch\(`\/song\/detail\?ids=\$\{encodeURIComponent\(ids\)\}/.test(html),
+  'initial song details should be fetched in one batched request instead of six function calls'
+);
+
+assert(
+  /@media\s*\(max-width:\s*600px\)[\s\S]*\.paper-bg,\s*\.grain-overlay\s*\{\s*display:\s*none/.test(html),
+  'mobile layout should disable the full-screen SVG grain filters to avoid scroll and animation jank'
+);
+
 function extractFunction(name) {
   const start = html.indexOf(`function ${name}`);
   assert.notStrictEqual(start, -1, `${name} should exist`);
