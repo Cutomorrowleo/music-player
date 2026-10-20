@@ -9,15 +9,15 @@ npm install
 node server.js
 ```
 
-Open `http://localhost:3000`. The local server mirrors the production `/api/*` URLs.
+Open `http://localhost:3000`.
 
 ## Vercel Deploy
 
 This project is prepared for Vercel:
 
-- `song.html` and cover images are served directly from Vercel's CDN.
-- NetEase Cloud Music requests use the same-origin `/api` prefix in local development and on Vercel.
-- Public song metadata is cached at the edge, while account and playback endpoints remain uncached.
+- Static files are served from the repository root.
+- NetEase Cloud Music requests use the same-origin `/api` prefix.
+- Local development and Vercel deployment use the same API paths.
 
 Import the GitHub repository in Vercel and deploy with the default settings.
 

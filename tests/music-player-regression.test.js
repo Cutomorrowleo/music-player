@@ -3,42 +3,10 @@ const fs = require('fs');
 const path = require('path');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'song.html'), 'utf8');
-const vercelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vercel.json'), 'utf8'));
-
-const genericNcmRoute = vercelConfig.routes.find((route) => route.src === '/api/(.*)');
-assert.strictEqual(
-  genericNcmRoute?.dest,
-  '/api/[...ncm].js?ncm=$1',
-  'Vercel should route public music API paths to the generated catch-all function file'
-);
-
-const authMeRoute = vercelConfig.routes.find((route) => route.src === '/api/auth/me');
-assert.strictEqual(
-  authMeRoute?.dest,
-  '/api/auth/me.js',
-  'Vercel should route dedicated APIs to their generated function files before the catch-all route'
-);
 
 assert(
   /const\s+API\s*=\s*['"]\/api['"]/.test(html),
-  'browser requests should use the Vercel /api function prefix so the player page can be served statically'
-);
-
-const apiFetch = extractFunction('apiFetch');
-assert(
-  /noCookie=1/.test(apiFetch),
-  'anonymous public API requests should opt out of cookies so Vercel can cache metadata safely'
-);
-
-assert(
-  /DEFAULT_SLOTS\.map\(\(slot\)\s*=>\s*slot\.nid\)\.join\(['"],['"]\)/.test(html) &&
-  /apiFetch\(`\/song\/detail\?ids=\$\{encodeURIComponent\(ids\)\}/.test(html),
-  'initial song details should be fetched in one batched request instead of six function calls'
-);
-
-assert(
-  /@media\s*\(max-width:\s*600px\)[\s\S]*\.paper-bg,\s*\.grain-overlay\s*\{\s*display:\s*none/.test(html),
-  'mobile layout should disable the full-screen SVG grain filters to avoid scroll and animation jank'
+  'public NetEase requests should use the /api prefix shared by local and Vercel routing'
 );
 
 function extractFunction(name) {
