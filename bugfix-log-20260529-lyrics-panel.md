@@ -73,3 +73,9 @@ Time: 2026-05-29
 ## Notes
 
 - The project directory is not a Git repository, so no Git diff/status was available.
+
+## Follow-up - Close Button Removed
+
+- The lyrics close button was later removed at the user's request because it distracted from the layout.
+- Lyrics mode can still be exited through the existing cover interaction or the Escape key.
+- The regression suite now verifies that no `lyrics-close` element is rendered.
