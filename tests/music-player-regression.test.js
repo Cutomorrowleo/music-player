@@ -3,10 +3,28 @@ const fs = require('fs');
 const path = require('path');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'song.html'), 'utf8');
+const vercelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vercel.json'), 'utf8'));
 
 assert(
   /const\s+API\s*=\s*['"]\/api['"]/.test(html),
   'public NetEase requests should use the /api prefix shared by local and Vercel routing'
+);
+
+assert(
+  vercelConfig.builds.some((build) => build.src === 'covers/**' && build.use === '@vercel/static'),
+  'Vercel should include local cover images in the production deployment'
+);
+
+assert.strictEqual(
+  vercelConfig.routes.find((route) => route.src === '/api/(.*)')?.dest,
+  '/api/[...ncm].js?ncm=$1',
+  'Vercel should route public NetEase API paths to the catch-all function'
+);
+
+assert.strictEqual(
+  vercelConfig.routes.find((route) => route.src === '/(?:song\\.html)?')?.dest,
+  '/song.html',
+  'Vercel should route the production root to the player page'
 );
 
 function extractFunction(name) {
