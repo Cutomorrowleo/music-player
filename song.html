@@ -55,7 +55,7 @@
         .paper-bg {
             position: fixed; top: 0; right: 0; bottom: 0; left: 0;
             z-index: 0; pointer-events: none;
-            filter: url(#paper-texture); opacity: 0.5;
+            filter: url(#paper-texture); opacity: 0.32;
         }
         .grain-overlay {
             position: fixed;
@@ -64,8 +64,8 @@
             z-index: 999; pointer-events: none;
             animation: grain-drift 0.4s steps(3) infinite;
         }
-        .grain-fine  { filter: url(#grain-fine);   opacity: 0.25; mix-blend-mode: screen; }
-        .grain-coarse { filter: url(#grain-coarse); opacity: 0.08; mix-blend-mode: screen; animation-direction: reverse; animation-duration: 0.3s; }
+        .grain-fine  { filter: url(#grain-fine); opacity: 0.12; mix-blend-mode: screen; animation-duration: 0.8s; }
+        .grain-coarse { filter: url(#grain-coarse); opacity: 0.035; mix-blend-mode: screen; animation-direction: reverse; animation-duration: 0.7s; }
         @keyframes grain-drift {
             0% { transform: translate(0); } 20% { transform: translate(-4%, 3%); }
             40% { transform: translate(3%, -4%); } 60% { transform: translate(-2%, -3%); }
@@ -81,7 +81,8 @@
         .lava-bg {
             position: fixed; top: 0; right: 0; bottom: 0; left: 0;
             z-index: 0; pointer-events: none; overflow: hidden;
-            filter: url(#goo) blur(40px);
+            filter: url(#goo) blur(46px); opacity: 0.76;
+            transition: opacity 0.5s ease;
         }
         .lava-blob {
             position: absolute;
@@ -96,20 +97,34 @@
         h1, h2 { font-family: var(--font-heading); font-style: normal; color: var(--cream); }
         h1 {
             font-size: clamp(1.2rem, 3vw, 1.8rem);
-            letter-spacing: 0.05em; opacity: 0.6;
+            letter-spacing: 0.05em; opacity: 0.72;
             margin: 0 0 24px; text-align: center;
         }
+        .track-meta {
+            width: min(1080px, 78vw);
+            margin: 8px auto 16px;
+            text-align: center;
+            position: relative;
+            z-index: 50;
+        }
         #track-title {
-            font-size: clamp(1.6rem, 5vw, 2.8rem);
-            text-align: center; margin: 8px auto 16px; min-height: 3rem;
-            max-width: min(1080px, 78vw);
-            max-height: 6.5rem;
+            font-size: clamp(1.55rem, 4.5vw, 2.65rem);
+            text-align: center; margin: 0 auto; min-height: 2.5rem;
+            max-width: 100%; max-height: 6.2rem;
             overflow: hidden;
             line-height: 1.15;
             padding: 0 18px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
+        }
+        #track-artist {
+            margin: 7px auto 0;
+            color: rgba(245,230,208,0.58);
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: clamp(0.72rem, 1.2vw, 0.92rem);
+            font-weight: 600;
+            line-height: 1.4;
         }
         .track-title-fade {
             -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
@@ -227,6 +242,26 @@
         .button-effects-ready .btn-player:hover svg { color: currentColor; }
         .btn-prev, .btn-next { width: 50px; height: 50px; border-radius: 50%; }
         .btn-play { width: 60px; height: 60px; border-radius: 50%; border-color: rgba(245,230,208,0.28); }
+        .playback-status {
+            min-height: 18px;
+            margin: -5px auto 7px;
+            color: rgba(245,230,208,0.58);
+            font: 600 0.66rem/1.4 system-ui, sans-serif;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .playback-status.show { opacity: 1; }
+        .btn-play.is-loading::after {
+            content: '';
+            position: absolute;
+            width: 72%; height: 72%;
+            border-radius: 50%;
+            border: 1px solid transparent;
+            border-top-color: var(--track-accent);
+            animation: player-loading 0.8s linear infinite;
+        }
+        @keyframes player-loading { to { transform: rotate(360deg); } }
 
         /* ===== Lyrics Detail Mode ===== */
         .player-progress {
@@ -309,6 +344,7 @@
             opacity: 0.58;
             filter: none;
             transition: opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease;
+            cursor: pointer;
         }
         .lyric-original {
             font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
@@ -337,12 +373,12 @@
         .lyric-pair.active {
             opacity: 1;
             filter: none;
-            transform: scale(1.045);
+            transform: scale(1.015);
             transform-origin: left center;
         }
         .lyric-pair.active .lyric-original {
             color: var(--track-accent);
-            font-size: clamp(1.24rem, 1.9vw, 1.86rem);
+            font-size: clamp(1.2rem, 1.72vw, 1.62rem);
             text-shadow: 0 2px 3px rgba(0,0,0,0.82), 0 0 18px var(--track-accent-glow), 0 0 32px var(--track-accent-glow);
         }
         .lyric-pair.active .lyric-translation {
@@ -356,6 +392,7 @@
             padding-right: 42vw;
             align-items: center;
         }
+        body.lyrics-mode .lava-bg { opacity: 0.48; }
         body.lyrics-mode h1 {
             position: fixed; top: var(--lyrics-left-top); left: 0; right: 42vw;
             margin: 0; z-index: 50;
@@ -381,7 +418,7 @@
         body.lyrics-mode .icon-cards__item:not(.is-active-card) {
             display: none;
         }
-        body.lyrics-mode #track-title {
+        body.lyrics-mode .track-meta {
             position: fixed;
             top: calc(var(--lyrics-art-top) + min(23vw, 310px) + 50px);
             left: 0; right: 42vw;
@@ -389,6 +426,7 @@
             margin: 0 auto;
             z-index: 50;
         }
+        body.lyrics-mode #track-title { font-size: clamp(1.35rem, 2.6vw, 2.35rem); }
         body.lyrics-mode .gapgutton {
             position: fixed;
             top: calc(var(--lyrics-art-top) + min(23vw, 310px) + 116px);
@@ -396,9 +434,17 @@
             margin: 0;
             z-index: 55;
         }
+        body.lyrics-mode .playback-status {
+            position: fixed;
+            top: calc(var(--lyrics-art-top) + min(23vw, 310px) + 164px);
+            left: 0; right: 42vw;
+            width: auto;
+            margin: 0;
+            z-index: 55;
+        }
         body.lyrics-mode .player-progress {
             position: fixed;
-            top: calc(var(--lyrics-art-top) + min(23vw, 310px) + 176px);
+            top: calc(var(--lyrics-art-top) + min(23vw, 310px) + 194px);
             left: 8vw; right: 50vw;
             width: auto;
             opacity: 1;
@@ -410,6 +456,42 @@
             transform: translateX(0);
             pointer-events: auto;
         }
+        .lyrics-state {
+            min-height: 100%;
+            display: grid;
+            place-items: center;
+            padding: 32px 12px 96px;
+            color: rgba(245,230,208,0.48);
+            font-size: 0.76rem;
+            line-height: 1.7;
+            text-align: center;
+        }
+        .lyrics-state button {
+            display: block;
+            margin: 12px auto 0;
+            padding: 8px 14px;
+            color: var(--cream);
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            cursor: pointer;
+        }
+        .lyrics-follow-btn {
+            position: absolute;
+            right: 40px;
+            bottom: 20px;
+            z-index: 3;
+            display: none;
+            padding: 8px 14px;
+            border: 1px solid var(--track-accent-line);
+            border-radius: 999px;
+            background: rgba(3,3,3,0.82);
+            color: var(--track-accent);
+            font: 600 0.7rem system-ui, sans-serif;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+        .lyrics-follow-btn.show { display: block; }
 
         /* ===== Sound Wave ===== */
         .sound-wave {
@@ -645,7 +727,7 @@
             font-size: 0.7rem; color: rgba(245,230,208,0.5); margin: 0 0 16px; padding-left: 20px;
             font-family: system-ui, sans-serif; line-height: 1.8;
         }
-        .ncm-login-actions { display: flex; gap: 8px; }
+        .ncm-login-actions { display: flex; flex-wrap: wrap; gap: 8px; }
         .ncm-login-refresh,
         .ncm-login-cancel {
             flex: 1; padding: 10px 18px; border-radius: 30px;
@@ -789,7 +871,97 @@
             border-color: var(--track-accent);
         }
 
-        /* ===== Add Track Floating Button ===== */
+        /* ===== Player Utility Dock ===== */
+        .utility-dock {
+            position: fixed;
+            left: 50%; bottom: 22px;
+            transform: translateX(-50%);
+            z-index: 101;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-height: 44px;
+            padding: 4px 6px;
+            border: 1px solid rgba(245,230,208,0.12);
+            border-radius: 999px;
+            background: rgba(9,8,8,0.66);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 36px rgba(0,0,0,0.3);
+        }
+        .utility-btn {
+            height: 34px;
+            min-width: 42px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 999px;
+            background: transparent;
+            color: rgba(245,230,208,0.64);
+            font: 650 0.68rem system-ui, sans-serif;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .utility-icon { display: none; }
+        .utility-btn:hover,
+        .utility-btn.active {
+            color: var(--cream);
+            background: var(--track-accent-soft);
+        }
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding-right: 8px;
+        }
+        .volume-range {
+            width: 76px;
+            height: 4px;
+            accent-color: var(--track-accent);
+            cursor: pointer;
+        }
+        .queue-panel {
+            position: fixed;
+            right: 24px;
+            bottom: 82px;
+            z-index: 102;
+            width: min(340px, calc(100vw - 32px));
+            max-height: min(440px, 62dvh);
+            overflow-y: auto;
+            padding: 16px;
+            border: 1px solid rgba(245,230,208,0.12);
+            border-radius: 8px;
+            background: rgba(12,11,11,0.94);
+            backdrop-filter: blur(18px);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
+        }
+        .queue-panel.open { opacity: 1; visibility: visible; transform: translateY(0); }
+        .queue-title { margin: 0 4px 10px; font-size: 0.78rem; color: rgba(245,230,208,0.7); }
+        .queue-item {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 32px minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            padding: 9px 8px;
+            border: 0;
+            border-top: 1px solid rgba(245,230,208,0.07);
+            background: transparent;
+            color: var(--cream);
+            text-align: left;
+            cursor: pointer;
+        }
+        .queue-item.active { color: var(--track-accent); background: var(--track-accent-soft); }
+        .queue-index { color: rgba(245,230,208,0.32); font-size: 0.64rem; text-align: center; }
+        .queue-song { overflow: hidden; }
+        .queue-song strong,
+        .queue-song span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .queue-song strong { font-size: 0.76rem; }
+        .queue-song span { margin-top: 3px; color: rgba(245,230,208,0.42); font-size: 0.62rem; }
+        .queue-state { font-size: 0.6rem; opacity: 0.6; }
+
+        /* ===== Search Floating Button ===== */
         .add-track-btn {
             position: fixed; bottom: 24px; right: 24px;
             width: 48px; height: 48px; border-radius: 50%;
@@ -804,6 +976,26 @@
             background: var(--track-accent-soft); border-color: var(--track-accent);
             box-shadow: inset 0 0 18px rgba(245,230,208,0.06), 0 0 34px var(--track-accent-glow);
             transform: scale(1.08);
+        }
+        .search-glyph {
+            position: relative;
+            width: 17px; height: 17px;
+            border: 2px solid currentColor;
+            border-radius: 50%;
+        }
+        .search-glyph::after {
+            content: '';
+            position: absolute;
+            width: 7px; height: 2px;
+            right: -5px; bottom: -2px;
+            border-radius: 2px;
+            background: currentColor;
+            transform: rotate(45deg);
+            transform-origin: left center;
+        }
+        :where(button, input):focus-visible {
+            outline: 2px solid var(--track-accent);
+            outline-offset: 3px;
         }
 
         /* ===== Popup Overlay ===== */
@@ -960,10 +1152,12 @@
             .btn-play { width: 50px; height: 50px; }
             .btn-prev svg, .btn-next svg { width: 16px; height: 16px; }
             .btn-play svg { width: 20px; height: 20px; }
-            .drag-hint { display: block; position: fixed; bottom: 66px; left: 0; right: 0; margin: 0; z-index: 50; }
+            .drag-hint { display: block; position: fixed; bottom: 184px; left: 0; right: 0; margin: 0; z-index: 50; }
             h1 { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 76px); left: 0; right: 0; z-index: 45; pointer-events: none; font-size: clamp(0.75rem, 3.5vw, 1.1rem); margin: 0 0 4px; }
             .ncm-login-btn { top: calc(env(safe-area-inset-top, 0px) + 20px); max-width: 34vw; min-width: 0; padding: 0 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            #track-title { position: fixed; bottom: 126px; left: 50%; right: auto; transform: translateX(-50%); width: min(94vw, 620px); max-width: min(94vw, 620px); text-align: center; box-sizing: border-box; padding: 0 6px; font-size: clamp(1rem, 5vw, 1.38rem); min-height: auto; margin: 0; z-index: 50; }
+            .track-meta { position: fixed; bottom: 118px; left: 50%; transform: translateX(-50%); width: min(94vw, 620px); margin: 0; z-index: 50; }
+            #track-title { width: 100%; max-width: 100%; padding: 0 6px; font-size: clamp(1rem, 5vw, 1.38rem); min-height: auto; margin: 0; }
+            #track-artist { margin-top: 4px; font-size: 0.7rem; }
             .lava-bg { filter: blur(30px); }
             .lava-blob { filter: blur(20px); }
             .sound-wave { display: flex; left: 20px; bottom: 18px; height: 28px; gap: 2px; z-index: 55; }
@@ -980,16 +1174,26 @@
             .popup-listen-btn { font-size: 0.6rem; padding: 8px 18px; }
             .search-panel { width: 100%; max-width: 100%; border-radius: 16px 16px 0 0; margin-top: auto; padding: 24px 18px; }
             .search-overlay.active { align-items: flex-end; }
-            .slot-indicator { position: fixed; bottom: 104px; z-index: 50; left: 0; right: 0; }
+            .slot-indicator { position: fixed; bottom: 208px; z-index: 50; left: 0; right: 0; }
+            .utility-dock { bottom: 70px; max-width: calc(100vw - 28px); gap: 2px; }
+            .utility-btn { width: 36px; min-width: 36px; padding: 0; font-size: 0.74rem; }
+            .utility-label { display: none; }
+            .utility-icon { display: inline-flex; align-items: center; justify-content: center; font-size: 0.86rem; line-height: 1; }
+            .volume-control { gap: 3px; padding-right: 4px; }
+            .volume-range { width: 48px; }
+            .queue-panel { left: 16px; right: 16px; bottom: 126px; width: auto; max-height: 52dvh; }
             body.lyrics-mode { padding: 4% 4% 170px; align-items: center; justify-content: flex-start; }
             body.lyrics-mode h1 { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 76px); left: 0; right: 0; }
-            body.lyrics-mode .icon-cards { top: 96px; left: 0; right: 0; width: 92vw; height: 250px; perspective: none; }
-            body.lyrics-mode .icon-cards__item { width: 46vw; height: 46vw; max-width: 210px; max-height: 210px; }
-            body.lyrics-mode #track-title { top: 344px; bottom: auto; left: 50%; right: auto; transform: translateX(-50%); }
+            body.lyrics-mode { --mobile-art-top: clamp(94px, 12dvh, 112px); --mobile-art-size: min(32vw, 148px); }
+            body.lyrics-mode .icon-cards { top: var(--mobile-art-top); left: 0; right: 0; width: 92vw; height: var(--mobile-art-size); perspective: none; }
+            body.lyrics-mode .icon-cards__item { width: var(--mobile-art-size); height: var(--mobile-art-size); max-width: 148px; max-height: 148px; }
+            body.lyrics-mode .track-meta { top: calc(var(--mobile-art-top) + var(--mobile-art-size) + 12px); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); width: 92vw; }
             body.lyrics-mode .drag-hint { display: none; }
-            body.lyrics-mode .gapgutton { top: 394px; bottom: auto; left: 0; right: 0; }
-            body.lyrics-mode .player-progress { top: 458px; left: 8vw; right: 8vw; width: auto; }
-            body.lyrics-mode .lyrics-panel { top: 522px; left: 8vw; right: 8vw; width: auto; height: calc(100vh - 626px); min-height: 220px; }
+            body.lyrics-mode .gapgutton { top: calc(var(--mobile-art-top) + var(--mobile-art-size) + 70px); bottom: auto; left: 0; right: 0; }
+            body.lyrics-mode .playback-status { top: calc(var(--mobile-art-top) + var(--mobile-art-size) + 120px); left: 0; right: 0; }
+            body.lyrics-mode .player-progress { top: calc(var(--mobile-art-top) + var(--mobile-art-size) + 142px); left: 8vw; right: 8vw; width: auto; }
+            body.lyrics-mode .lyrics-panel { top: calc(var(--mobile-art-top) + var(--mobile-art-size) + 184px); bottom: 72px; left: 8vw; right: 8vw; width: auto; height: auto; min-height: 132px; }
+            body.lyrics-mode .utility-dock { bottom: 12px; }
             .lyrics-list { padding: 0 44px 72px 12px; }
             .lyric-pair { min-height: 46px; margin-bottom: 16px; opacity: 0.62; }
             .lyric-original { font-size: 0.96rem; line-height: 1.34; }
@@ -1021,13 +1225,23 @@
             .icon-cards__item { width: 16vw; height: 16vw; }
             .gapgutton { margin-bottom: 6px; }
             h1 { margin: 0 0 2px; }
-            #track-title { margin: 2px 0 4px; min-height: 1.5rem; }
+            .track-meta { margin: 2px auto 4px; }
+            #track-title { min-height: 1.5rem; }
         }
         @media (min-width: 601px) and (max-width: 1024px) {
             body { padding: 3% 8% 0; }
             .icon-cards { width: 70vw; max-width: 520px; }
             .icon-cards__item { width: 20vw; height: 20vw; max-width: 220px; max-height: 220px; }
             .popup-panel { max-width: 580px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+            }
+            .lava-blob, .icon-cards, .icon-cards__content { transition: none !important; }
         }
         #playlist { display: none; }
     </style>
@@ -1085,8 +1299,11 @@
         </div>
     </figure>
 
-    <h2 id="track-title">年少有为 - 李荣浩</h2>
-    <p class="drag-hint">← 滑动卡片切换歌曲 →</p>
+    <div class="track-meta" id="track-meta">
+        <h2 id="track-title">年少有为</h2>
+        <p id="track-artist">李荣浩</p>
+    </div>
+    <p class="drag-hint" id="drag-hint">↑ 上下滑动切歌 ↓</p>
     <ul id="playlist"></ul>
 
     <!-- Button Group -->
@@ -1114,6 +1331,8 @@
         </button>
     </div>
 
+    <p id="playback-status" class="playback-status" role="status" aria-live="polite"></p>
+
     <div class="player-progress" id="player-progress">
         <div class="progress-times">
             <span id="current-time">0:00</span>
@@ -1123,6 +1342,7 @@
     </div>
 
     <aside class="lyrics-panel" id="lyrics-panel" aria-label="歌词">
+        <button id="lyrics-follow-btn" class="lyrics-follow-btn" type="button">回到当前句</button>
         <div class="lyrics-list" id="lyrics-list"></div>
     </aside>
 
@@ -1220,6 +1440,7 @@
                 </ol>
                 <div class="ncm-login-actions">
                     <button id="ncm-login-refresh" class="ncm-login-refresh" type="button">刷新</button>
+                    <button id="ncm-advanced-login" class="ncm-login-cancel" type="button">高级登录</button>
                     <button id="ncm-login-cancel" class="ncm-login-cancel" type="button">取消</button>
                 </div>
                 <p class="ncm-login-note">仅保存加密会话，不暴露 Cookie</p>
@@ -1250,21 +1471,27 @@
     </button>
     <span id="reactive-indicator" class="reactive-indicator show">特效 ON</span>
 
-    <!-- ============ VIP 登录按钮 ============ -->
+    <!-- ============ 网易云登录入口 ============ -->
     <button id="ncm-login-btn" class="ncm-login-btn" type="button" aria-label="登录网易云">登录网易云</button>
 
-    <button id="vip-btn" class="vip-btn" title="VIP登录" aria-label="VIP登录" onclick="openVipModal()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 1l3 9h9l-7 5.25 2.75 8.75L12 18 4.25 24 7 15.25 0 10h9z"/>
-        </svg>
-    </button>
-    <span id="vip-indicator" class="vip-indicator">VIP</span>
+    <div class="utility-dock" aria-label="播放工具">
+        <button id="favorite-toggle-btn" class="utility-btn" type="button" aria-pressed="false" aria-label="收藏当前歌曲" title="收藏当前歌曲"><span class="utility-icon" aria-hidden="true">♡</span><span class="utility-label">收藏</span></button>
+        <button id="lyrics-toggle-btn" class="utility-btn" type="button" aria-pressed="false" aria-label="歌词" title="歌词"><span class="utility-icon" aria-hidden="true">词</span><span class="utility-label">歌词</span></button>
+        <div class="volume-control">
+            <button id="volume-toggle-btn" class="utility-btn" type="button" aria-label="静音" title="静音"><span class="utility-icon" aria-hidden="true">音</span><span class="utility-label">音量</span></button>
+            <input id="volume-range" class="volume-range" type="range" min="0" max="100" value="80" aria-label="音量">
+        </div>
+        <button id="queue-toggle-btn" class="utility-btn" type="button" aria-expanded="false" aria-label="播放列表" title="播放列表"><span class="utility-icon" aria-hidden="true">≡</span><span class="utility-label">列表</span></button>
+    </div>
+
+    <section id="queue-panel" class="queue-panel" aria-label="播放列表" aria-hidden="true">
+        <h2 class="queue-title">播放列表</h2>
+        <div id="queue-list"></div>
+    </section>
 
     <!-- ============ Add Track Floating Button ============ -->
-    <button id="add-track-btn" class="add-track-btn" title="搜索替换歌曲" aria-label="添加歌曲">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
+    <button id="add-track-btn" class="add-track-btn" title="搜索歌曲" aria-label="搜索歌曲">
+        <span class="search-glyph" aria-hidden="true"></span>
     </button>
 
     <!-- ============ Sound Wave Visualizer ============ -->
@@ -1317,15 +1544,10 @@
     }
 
     function updateVipStatus() {
-        const btn = document.getElementById('vip-btn');
-        const ind = document.getElementById('vip-indicator');
-        if (vipCookie) {
-            btn.classList.add('vip-active');
-            ind.classList.add('show');
-        } else {
-            btn.classList.remove('vip-active');
-            ind.classList.remove('show');
-        }
+        const advancedButton = document.getElementById('ncm-advanced-login');
+        if (!advancedButton) return;
+        advancedButton.textContent = vipCookie ? 'Cookie 已保存' : '高级登录';
+        advancedButton.classList.toggle('active', Boolean(vipCookie));
     }
 
     function openVipModal() {
@@ -1677,19 +1899,32 @@
     ];
     const SLOT_COLORS = ['#FDD94F', '#4A90D9', '#888888', '#7BA7CC', '#F7E04B', '#F77E7E'];
     const DEFAULT_BLOB_COLOR = '#f5e6d0';
+    const PLAYER_STORAGE = {
+        slots: 'echoroom_slots',
+        currentTrack: 'echoroom_current_track',
+        replaceIndex: 'echoroom_replace_index',
+        positions: 'echoroom_positions',
+        favorites: 'echoroom_favorites',
+    };
 
     // --- 状态 ---
     let slots      = [];        // 6个 { nid, title, artist, cover, album, color }
     let replaceIdx = 0;        // 下一个要被替换的槽位 (0-5)
     let currentIdx = 0;        // 当前显示的槽位
+    let carouselPosition = 0;  // 连续位置，保证首尾切歌只旋转一格
     let isPlaying  = false;
     let playingIdx = null;
     let playRequestSeq = 0;
     let reactiveMode = 'off';
+    let pendingResumeTrackId = '';
+    let lastProgressSaveAt = 0;
+    const storedFavorites = readStoredJson(PLAYER_STORAGE.favorites, []);
+    let favoriteTrackIds = new Set(Array.isArray(storedFavorites) ? storedFavorites.map(String) : []);
 
     // --- DOM ---
     const contentEl   = document.getElementById('icon-cards-content');
     const trackTitle  = document.getElementById('track-title');
+    const trackArtist = document.getElementById('track-artist');
     const audio       = document.getElementById('audio-player');
     const soundWave   = document.getElementById('sound-wave');
     const popupOverlay = document.getElementById('popup-overlay');
@@ -1711,64 +1946,124 @@
     const currentTimeEl = document.getElementById('current-time');
     const durationTimeEl = document.getElementById('duration-time');
     const lyricsList = document.getElementById('lyrics-list');
+    const lyricsFollowBtn = document.getElementById('lyrics-follow-btn');
+    const lyricsToggleBtn = document.getElementById('lyrics-toggle-btn');
+    const favoriteToggleBtn = document.getElementById('favorite-toggle-btn');
+    const playbackStatus = document.getElementById('playback-status');
+    const playButton = document.getElementById('play');
+    const volumeToggleBtn = document.getElementById('volume-toggle-btn');
+    const volumeRange = document.getElementById('volume-range');
+    const queueToggleBtn = document.getElementById('queue-toggle-btn');
+    const queuePanel = document.getElementById('queue-panel');
+    const queueList = document.getElementById('queue-list');
+    const dragHint = document.getElementById('drag-hint');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let lyricsMode = false;
     let lyricRows = [];
     let activeLyricIndex = -1;
-    let lyricsUserScrollUntil = 0;
+    let lyricsState = 'idle';
+    let lyricsFollowPaused = false;
+    let lyricsRequestSeq = 0;
+    let isLoadingTrack = false;
 
     // ============================================================
     //  INIT — 从本地API获取6首默认歌曲的封面和专辑信息
     // ============================================================
+    function readStoredJson(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            return raw === null ? fallback : JSON.parse(raw);
+        } catch (error) {
+            return fallback;
+        }
+    }
+
     function fixCover(url) { return url ? url.replace(/^http:/, 'https:') : ''; }
     function getArtistName(song) {
         const list = song.ar || song.artists || [];
         return list.length ? list.map(a => a.name).join('/') : '未知歌手';
     }
 
-    async function init() {
-        // 并行获取6首歌的详情
-        const results = await Promise.all(DEFAULT_SLOTS.map(async (s) => {
-            try {
-                const res = await apiFetch(`/song/detail?ids=${s.nid}`);
-                const data = await res.json();
-                if (data.songs && data.songs[0]) {
-                    const song = data.songs[0];
-                    return {
-                        nid: s.nid,
-                        title: song.name || s.title,
-                        artist: getArtistName(song),
-                        cover: fixCover(song.al?.picUrl),
-                        album: song.al ? song.al.name : '',
-                    };
-                }
-            } catch(e) { console.warn('获取歌曲详情失败:', s.title, e); }
-            // 降级：用搜索获取封面
-            try {
-                const res = await apiFetch(`/search?keywords=${encodeURIComponent(s.artist + ' ' + s.title)}&limit=1`);
-                const data = await res.json();
-                const song = data.result?.songs?.[0];
-                if (song) {
-                    return {
-                        nid: s.nid,
-                        title: song.name || s.title,
-                        artist: getArtistName(song),
-                        cover: fixCover(song.al?.picUrl),
-                        album: song.al ? song.al.name : '',
-                    };
-                }
-            } catch(e) {}
-            return { nid: s.nid, title: s.title, artist: s.artist, cover: '', album: '' };
+    function getInitialSlots() {
+        const saved = readStoredJson(PLAYER_STORAGE.slots, null);
+        const source = Array.isArray(saved) && saved.length === 6 ? saved : DEFAULT_SLOTS;
+        return source.map((track, index) => ({
+            nid: String(track.nid || DEFAULT_SLOTS[index].nid),
+            title: track.title || DEFAULT_SLOTS[index].title,
+            artist: track.artist || DEFAULT_SLOTS[index].artist,
+            cover: isValidTrackCover(track.cover) ? fixCover(track.cover) : '',
+            album: track.album || '',
+            color: SLOT_COLORS[index] || DEFAULT_BLOB_COLOR,
         }));
+    }
 
-        slots = results.map((track, index) => ({
-            ...track,
-            color: track.color || SLOT_COLORS[index] || DEFAULT_BLOB_COLOR,
-        }));
+    function persistPlayerState() {
+        try {
+            localStorage.setItem(PLAYER_STORAGE.slots, JSON.stringify(slots.map(track => ({
+                nid: track.nid,
+                title: track.title,
+                artist: track.artist,
+                cover: track.cover,
+                album: track.album || '',
+            }))));
+            localStorage.setItem(PLAYER_STORAGE.currentTrack, String(slots[currentIdx]?.nid || ''));
+            localStorage.setItem(PLAYER_STORAGE.replaceIndex, String(replaceIdx));
+        } catch (error) {
+            console.warn('播放器状态保存失败:', error);
+        }
+    }
+
+    async function fetchTrackMetadata(track) {
+        try {
+            const res = await apiFetch(`/song/detail?ids=${track.nid}`);
+            const data = await res.json();
+            if (res.ok && data.songs && data.songs[0]) {
+                const song = data.songs[0];
+                return {
+                    ...track,
+                    title: song.name || track.title,
+                    artist: getArtistName(song),
+                    cover: fixCover(song.al?.picUrl) || track.cover,
+                    album: song.al?.name || track.album || '',
+                };
+            }
+        } catch (error) {
+            console.warn('获取歌曲详情失败:', track.title, error);
+        }
+        return track;
+    }
+
+    function renderPlayerShell() {
+        updateDragHint();
         updateSlotDots();
         renderCards();
         updateContentTransform();
         updateTrackInfo();
+        renderQueue();
+        updateFavoriteButton();
+    }
+
+    async function init() {
+        slots = getInitialSlots();
+        const savedTrackId = localStorage.getItem(PLAYER_STORAGE.currentTrack);
+        const savedIndex = slots.findIndex(track => String(track.nid) === savedTrackId);
+        currentIdx = savedIndex >= 0 ? savedIndex : 0;
+        carouselPosition = currentIdx;
+        const savedReplaceIndex = Number(localStorage.getItem(PLAYER_STORAGE.replaceIndex));
+        replaceIdx = Number.isInteger(savedReplaceIndex) && savedReplaceIndex >= 0 && savedReplaceIndex < 6
+            ? savedReplaceIndex
+            : 0;
+
+        // 先绘制可操作的播放器，再逐张补全在线歌曲信息。
+        renderPlayerShell();
+        await Promise.allSettled(slots.map(async (sourceTrack, index) => {
+            const hydrated = await fetchTrackMetadata(sourceTrack);
+            if (String(slots[index]?.nid) !== String(sourceTrack.nid)) return;
+            slots[index] = { ...hydrated, color: SLOT_COLORS[index] || DEFAULT_BLOB_COLOR };
+            renderPlayerShell();
+        }));
+        persistPlayerState();
     }
 
     async function loadRecentTracksFromAccount() {
@@ -1806,12 +2101,15 @@
                 color: SLOT_COLORS[index % SLOT_COLORS.length],
             }));
             currentIdx = 0;
+            carouselPosition = 0;
             replaceIdx = 0;
             renderCards();
             updateContentTransform();
             updateSlotDots();
             updateTrackInfo();
+            renderQueue();
             updateLavaColors();
+            persistPlayerState();
             if (lyricsMode) loadLyricsForCurrent();
             if (isPlaying) loadAndPlay(slots[0]);
             return true;
@@ -1930,7 +2228,7 @@
         const tz = isMobile() ? '50vw' : '38vw';
         const axis = isMobile() ? 'rotateX' : 'rotateY';
         const sign = isMobile() ? 1 : -1;
-        contentEl.style.transform = `translateZ(-${tz}) ${axis}(${sign * currentIdx * 60}deg)`;
+        contentEl.style.transform = `translateZ(-${tz}) ${axis}(${sign * carouselPosition * 60}deg)`;
     }
 
     // ============================================================
@@ -1960,7 +2258,7 @@
         setTimeout(() => dots[replaceIdx].classList.remove('replacing'), 600);
 
         // 跳转到新替换的卡片
-        currentIdx = replaceIdx;
+        moveCarouselTo(replaceIdx);
 
         // 指针前进，循环
         replaceIdx = (replaceIdx + 1) % 6;
@@ -1971,6 +2269,7 @@
         updateSlotDots();
         updateTrackInfo();
         updateLavaColors();
+        persistPlayerState();
         if (lyricsMode) loadLyricsForCurrent();
 
         // 标记刚替换的卡片高亮
@@ -1986,10 +2285,14 @@
 
     function updateTrackInfo() {
         const t = slots[currentIdx];
-        trackTitle.textContent = t.title + ' - ' + t.artist;
+        if (!t) return;
+        trackTitle.textContent = t.title;
+        trackArtist.textContent = t.artist;
         trackTitle.classList.remove('track-title-fade');
         updateTrackTitleFade();
         document.title = t.artist + ' - ' + t.title;
+        updateFavoriteButton();
+        renderQueue();
     }
 
     function updateTrackTitleFade() {
@@ -2025,17 +2328,39 @@
     }
 
     function restoreDisplayedTrack(index) {
-        currentIdx = ((index % 6) + 6) % 6;
+        moveCarouselTo(index);
         renderCurrentTrackState();
+    }
+
+    function moveCarouselTo(index) {
+        const total = slots.length || 6;
+        const normalized = ((Math.round(index) % total) + total) % total;
+        let delta = normalized - currentIdx;
+        if (delta > total / 2) delta -= total;
+        if (delta < -total / 2) delta += total;
+        carouselPosition += delta;
+        currentIdx = normalized;
     }
 
     async function goTo(index, autoPlay) {
         const previousIdx = currentIdx;
         index = ((index % 6) + 6) % 6;
         const sameTrack = (index === currentIdx);
-        currentIdx = index;
+        moveCarouselTo(index);
         renderCurrentTrackState();
-        if (autoPlay !== false && !sameTrack) {
+        persistPlayerState();
+        if (autoPlay !== false && sameTrack && playingIdx === currentIdx && audio.src && audio.src !== window.location.href) {
+            if (audio.paused) {
+                try {
+                    await audio.play();
+                    setPlaying(true);
+                } catch (error) {
+                    return loadAndPlay(slots[currentIdx], { requestedIdx: currentIdx });
+                }
+            }
+            return true;
+        }
+        if (autoPlay !== false && (!sameTrack || playingIdx !== currentIdx || !audio.src || audio.src === window.location.href)) {
             const requestedIdx = currentIdx;
             const rollbackIdx = Number.isInteger(playingIdx) ? playingIdx : previousIdx;
             const playStarted = await loadAndPlay(slots[requestedIdx], { requestedIdx });
@@ -2055,6 +2380,8 @@
     function toggleLyricsMode(force) {
         lyricsMode = typeof force === 'boolean' ? force : !lyricsMode;
         document.body.classList.toggle('lyrics-mode', lyricsMode);
+        lyricsToggleBtn?.classList.toggle('active', lyricsMode);
+        lyricsToggleBtn?.setAttribute('aria-pressed', String(lyricsMode));
         renderCards();
         updateContentTransform();
         updateTrackInfo();
@@ -2079,6 +2406,40 @@
         durationTimeEl.textContent = formatTime(duration);
     }
 
+    function getPlaybackPositions() {
+        const positions = readStoredJson(PLAYER_STORAGE.positions, {});
+        return positions && typeof positions === 'object' ? positions : {};
+    }
+
+    function savePlaybackPosition(force) {
+        if (!Number.isInteger(playingIdx) || !Number.isFinite(audio.currentTime)) return;
+        const now = Date.now();
+        if (!force && now - lastProgressSaveAt < 5000) return;
+        const track = slots[playingIdx];
+        if (!track?.nid) return;
+        const positions = getPlaybackPositions();
+        positions[String(track.nid)] = Math.max(0, Math.round(audio.currentTime * 10) / 10);
+        localStorage.setItem(PLAYER_STORAGE.positions, JSON.stringify(positions));
+        lastProgressSaveAt = now;
+    }
+
+    function restorePlaybackPosition() {
+        if (!pendingResumeTrackId || !Number.isFinite(audio.duration)) return;
+        const savedTime = Number(getPlaybackPositions()[pendingResumeTrackId]);
+        if (Number.isFinite(savedTime) && savedTime > 3 && savedTime < audio.duration - 8) {
+            audio.currentTime = savedTime;
+        }
+        pendingResumeTrackId = '';
+    }
+
+    function clearPlaybackPosition() {
+        const track = Number.isInteger(playingIdx) ? slots[playingIdx] : null;
+        if (!track?.nid) return;
+        const positions = getPlaybackPositions();
+        delete positions[String(track.nid)];
+        localStorage.setItem(PLAYER_STORAGE.positions, JSON.stringify(positions));
+    }
+
     function parseLrc(text) {
         if (!text) return [];
         const rows = [];
@@ -2086,7 +2447,7 @@
             const matches = [...line.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)];
             const content = line.replace(/\[[^\]]+\]/g, '').trim();
             if (!matches.length || !content) return;
-            if (/^(作词|作曲|编曲|制作人|监制|和声|录音|混音|母带|吉他|贝斯|鼓|键盘|弦乐|词|曲|OP|SP)\s*[:：]/i.test(content)) return;
+            if (/^(作词|作曲|编曲|制作人|监制|和声(?:编写)?|录音(?:师|室)?|混音(?:师|室)?|母带(?:制作|工程师|后期处理录音室)?|吉他|贝斯|鼓|键盘|弦乐(?:编写)?|词|曲|OP|SP)\s*[:：]/i.test(content)) return;
             matches.forEach(match => {
                 rows.push({
                     time: Number(match[1]) * 60 + Number(match[2]),
@@ -2114,7 +2475,7 @@
     }
 
     function mergeLyricRows(originalRows, translationRows) {
-        if (!originalRows.length) return fallbackLyrics();
+        if (!originalRows.length) return [];
         const singleLine = shouldUseSingleLineLyrics(originalRows);
         return originalRows.map(row => {
             const translated = translationRows.find(item => Math.abs(item.time - row.time) < 0.6);
@@ -2127,45 +2488,69 @@
         });
     }
 
-    function fallbackLyrics() {
-        return [
-            { time: 0, original: '我曾把最重要的东西弄丢', translation: '', singleLine: true },
-            { time: 8, original: '没有灯光的房间里', translation: '', singleLine: true },
-            { time: 16, original: '我们仍然听见彼此', translation: '', singleLine: true },
-            { time: 24, original: '风穿过玻璃', translation: '', singleLine: true },
-            { time: 32, original: '下一句还没唱完', translation: '', singleLine: true },
-            { time: 40, original: '光落在安静的夜里', translation: '', singleLine: true },
-            { time: 48, original: '回声慢慢远去', translation: '', singleLine: true }
-        ];
-    }
-
     function renderLyrics() {
         if (!lyricsList) return;
-        const rows = lyricRows.length ? lyricRows : fallbackLyrics();
-        lyricsList.innerHTML = rows.map((row, index) => `
-            <div class="lyric-pair${index === activeLyricIndex ? ' active' : ''}${row.singleLine || !row.translation ? ' single-line' : ''}" data-lyric-index="${index}">
+        if (lyricsState === 'loading') {
+            lyricsList.innerHTML = '<div class="lyrics-state">正在加载歌词...</div>';
+            return;
+        }
+        if (lyricsState === 'error') {
+            lyricsList.innerHTML = '<div class="lyrics-state">歌词加载失败<button type="button" data-action="retry-lyrics">重新加载</button></div>';
+            lyricsList.querySelector('[data-action="retry-lyrics"]')?.addEventListener('click', loadLyricsForCurrent);
+            return;
+        }
+        if (!lyricRows.length) {
+            lyricsList.innerHTML = '<div class="lyrics-state">暂无歌词<br>这首歌可能是纯音乐</div>';
+            return;
+        }
+        lyricsList.innerHTML = lyricRows.map((row, index) => `
+            <div class="lyric-pair${index === activeLyricIndex ? ' active' : ''}${row.singleLine || !row.translation ? ' single-line' : ''}" data-lyric-index="${index}" role="button" tabindex="0">
                 <div class="lyric-original">${esc(row.original || '')}</div>
                 ${row.translation ? `<div class="lyric-translation">${esc(row.translation)}</div>` : ''}
             </div>
         `).join('');
+        lyricsList.querySelectorAll('.lyric-pair').forEach(row => {
+            const seek = () => seekToLyric(Number(row.dataset.lyricIndex));
+            row.addEventListener('click', seek);
+            row.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    seek();
+                }
+            });
+        });
         syncLyricScroll();
     }
 
     async function loadLyricsForCurrent() {
         const track = slots[currentIdx];
-        lyricRows = fallbackLyrics();
-        activeLyricIndex = 0;
+        const requestSeq = ++lyricsRequestSeq;
+        lyricRows = [];
+        activeLyricIndex = -1;
+        lyricsState = 'loading';
+        resumeLyricFollow(false);
         renderLyrics();
-        if (!track?.nid) return;
+        if (!track?.nid) {
+            lyricsState = 'empty';
+            renderLyrics();
+            return;
+        }
         try {
             const res = await fetch(`/api/track/lyric?id=${track.nid}`, { credentials: 'include' });
+            if (!res.ok) throw new Error(`lyrics request failed: ${res.status}`);
             const data = await res.json();
             const originalRows = parseLrc(data.lrc?.lyric || '');
             const translationRows = parseLrc(data.tlyric?.lyric || data.romalrc?.lyric || '');
+            if (requestSeq !== lyricsRequestSeq || track.nid !== slots[currentIdx]?.nid) return;
             lyricRows = mergeLyricRows(originalRows, translationRows);
+            lyricsState = lyricRows.length ? 'ready' : 'empty';
             activeLyricIndex = -1;
+            renderLyrics();
             updateActiveLyric();
         } catch (error) {
+            if (requestSeq !== lyricsRequestSeq) return;
+            console.warn('歌词加载失败:', error);
+            lyricsState = 'error';
             renderLyrics();
         }
     }
@@ -2179,14 +2564,17 @@
             else break;
         }
         if (nextIndex === activeLyricIndex) return;
+        const previous = lyricsList?.querySelector('.lyric-pair.active');
+        previous?.classList.remove('active');
         activeLyricIndex = nextIndex;
-        renderLyrics();
+        lyricsList?.querySelector(`[data-lyric-index="${nextIndex}"]`)?.classList.add('active');
+        syncLyricScroll();
     }
 
     function syncLyricScroll() {
         const active = lyricsList?.querySelector('.lyric-pair.active');
         if (!active) return;
-        if (Date.now() < lyricsUserScrollUntil) return;
+        if (lyricsFollowPaused) return;
         const maxOffset = Math.max(0, lyricsList.scrollHeight - lyricsList.clientHeight);
         const target = active.offsetTop - lyricsList.clientHeight * 0.38 + active.offsetHeight * 0.5;
         const offset = Math.min(maxOffset, Math.max(0, target));
@@ -2194,7 +2582,29 @@
     }
 
     function markLyricsManualScroll() {
-        lyricsUserScrollUntil = Date.now() + 3500;
+        if (!lyricRows.length) return;
+        lyricsFollowPaused = true;
+        lyricsFollowBtn?.classList.add('show');
+    }
+
+    function resumeLyricFollow(shouldScroll = true) {
+        lyricsFollowPaused = false;
+        lyricsFollowBtn?.classList.remove('show');
+        if (shouldScroll) syncLyricScroll();
+    }
+
+    function seekToLyric(index) {
+        const row = lyricRows[index];
+        if (!row) return;
+        if (!audio.src || playingIdx !== currentIdx || !Number.isFinite(audio.duration)) {
+            showToast('先播放当前歌曲再跳转歌词');
+            return;
+        }
+        audio.currentTime = Math.max(0, row.time);
+        resumeLyricFollow(false);
+        activeLyricIndex = -1;
+        updateProgressUI();
+        updateActiveLyric();
     }
 
     progressRange.addEventListener('input', () => {
@@ -2206,6 +2616,7 @@
     lyricsList.addEventListener('wheel', markLyricsManualScroll, { passive: true });
     lyricsList.addEventListener('touchstart', markLyricsManualScroll, { passive: true });
     lyricsList.addEventListener('pointerdown', markLyricsManualScroll);
+    lyricsFollowBtn?.addEventListener('click', () => resumeLyricFollow(true));
 
     // ============================================================
     //  DRAG / SWIPE
@@ -2215,7 +2626,10 @@
     let dragStartX   = 0;
     let dragStartY   = 0;
     let dragStartIdx = 0;
-    let dragPreviewIdx = 0;
+    let dragStartPosition = 0;
+    let dragPreviewPosition = 0;
+    let dragStartTime = 0;
+    let dragPrimaryDistance = 0;
 
     iconCards.addEventListener('mousedown', onDragStart);
     iconCards.addEventListener('touchstart', onDragStart, { passive: false });
@@ -2223,6 +2637,7 @@
     window.addEventListener('touchmove', onDragMove, { passive: false });
     window.addEventListener('mouseup', onDragEnd);
     window.addEventListener('touchend', onDragEnd);
+    window.addEventListener('touchcancel', cancelDrag);
 
     function onDragStart(e) {
         if (lyricsMode) return;
@@ -2230,7 +2645,10 @@
         const pt = e.touches ? e.touches[0] : e;
         dragStartX = pt.clientX; dragStartY = pt.clientY;
         dragStartIdx = currentIdx;
-        dragPreviewIdx = currentIdx;
+        dragStartPosition = carouselPosition;
+        dragPreviewPosition = carouselPosition;
+        dragStartTime = performance.now();
+        dragPrimaryDistance = 0;
         contentEl.style.transition = 'none';
         e.preventDefault?.();
     }
@@ -2241,11 +2659,13 @@
         const dx = pt.clientX - dragStartX;
         const dy = pt.clientY - dragStartY;
         if (Math.abs(dx) > 6 || Math.abs(dy) > 6) wasDragging = true;
-        const delta = isMobile() ? dy * 0.1 : dx * 0.1;
-        const offset = delta / 60;
-        dragPreviewIdx = dragStartIdx - offset;
-        // Clamp to nearest valid rotation
-        const angle = dragPreviewIdx * 60;
+        dragPrimaryDistance = isMobile() ? dy : dx;
+        const distancePerTrack = isMobile()
+            ? Math.min(150, Math.max(105, window.innerHeight * 0.16))
+            : 180;
+        const previewDelta = Math.max(-1.08, Math.min(1.08, -dragPrimaryDistance / distancePerTrack));
+        dragPreviewPosition = dragStartPosition + previewDelta;
+        const angle = dragPreviewPosition * 60;
         const tz = isMobile() ? '50vw' : '38vw';
         const axis = isMobile() ? 'rotateX' : 'rotateY';
         const sign = isMobile() ? 1 : -1;
@@ -2263,8 +2683,25 @@
             setTimeout(() => { wasDragging = false; }, 50);
             return;
         }
-        goTo(Math.round(dragPreviewIdx));
+        const elapsed = Math.max(1, performance.now() - dragStartTime);
+        const velocity = Math.abs(dragPrimaryDistance) / elapsed;
+        const threshold = isMobile() ? 42 : 55;
+        const shouldSwitch = Math.abs(dragPrimaryDistance) >= threshold || velocity >= 0.45;
+        if (shouldSwitch) {
+            const direction = dragPrimaryDistance < 0 ? 1 : -1;
+            goTo(dragStartIdx + direction);
+        } else {
+            updateContentTransform();
+        }
         setTimeout(() => { wasDragging = false; }, 50);
+    }
+
+    function cancelDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        wasDragging = false;
+        contentEl.style.transition = 'transform 0.35s ease-out';
+        updateContentTransform();
     }
 
     // ============================================================
@@ -2272,10 +2709,24 @@
     // ============================================================
     const NCM_REAL_IP = '116.25.146.177';
 
+    function setPlaybackStatus(message = '', state = '') {
+        isLoadingTrack = state === 'loading';
+        playButton?.classList.toggle('is-loading', isLoadingTrack);
+        playButton?.setAttribute('aria-busy', String(isLoadingTrack));
+        if (!playbackStatus) return;
+        playbackStatus.textContent = message;
+        playbackStatus.classList.toggle('show', Boolean(message));
+    }
+
     async function loadAndPlay(track, options) {
         options = options || {};
         const requestSeq = ++playRequestSeq;
-        if (!track || !track.nid) { showToast('无法获取播放地址'); return false; }
+        if (!track || !track.nid) {
+            setPlaybackStatus('无法获取播放地址', 'error');
+            showToast('无法获取播放地址');
+            return false;
+        }
+        setPlaybackStatus(`正在加载 ${track.title}...`, 'loading');
         showToast('正在加载 ' + track.title + '...');
         try {
             // lossless获取完整音频（非30秒试听）
@@ -2292,14 +2743,17 @@
                 try {
                     res = await fetch(urlEndpoint, { credentials: 'include' });
                 } catch (error) {
+                    if (requestSeq !== playRequestSeq) return false;
                     networkFailures++;
                     continue;
                 }
+                if (requestSeq !== playRequestSeq) return false;
                 try {
                     data = await res.json();
                 } catch (error) {
                     continue;
                 }
+                if (requestSeq !== playRequestSeq) return false;
                 if (!data || typeof data !== 'object') continue;
                 if (res.status === 403 || data.error === 'NO_PLAY_PERMISSION') {
                     continue;
@@ -2313,26 +2767,39 @@
             }
             if (url) {
                 if (requestSeq !== playRequestSeq) return false;
+                pendingResumeTrackId = String(track.nid);
                 audio.src = url;
                 try {
                     await audio.play();
                     setPlaying(true);
                     if (Number.isInteger(options.requestedIdx)) playingIdx = options.requestedIdx;
+                    if (!Number.isInteger(options.requestedIdx)) playingIdx = currentIdx;
+                    setPlaybackStatus();
+                    renderQueue();
                     return true;
                 } catch (error) {
+                    setPlaybackStatus('播放失败，请重试', 'error');
                     showToast('播放失败');
                     return false;
                 }
+            } else if (requestSeq !== playRequestSeq) {
+                return false;
             } else if (networkFailures === qualityLevels.length) {
-                showToast('缃戠粶閿欒');
+                setPlaybackStatus('网络连接失败，请稍后重试', 'error');
+                showToast('网络连接失败');
                 return false;
             } else {
+                setPlaybackStatus('暂无可用播放源，可能受版权或登录限制', 'error');
                 showToast('无播放源（版权/地区限制或需登录）');
                 return false;
             }
         } catch(e) {
+            if (requestSeq !== playRequestSeq) return false;
+            setPlaybackStatus('网络连接失败，请稍后重试', 'error');
             showToast('网络错误');
             return false;
+        } finally {
+            if (requestSeq === playRequestSeq && isLoadingTrack) setPlaybackStatus();
         }
     }
 
@@ -2350,23 +2817,32 @@
 
     function setPlaying(p) {
         isPlaying = p;
+        playButton?.setAttribute('aria-label', p ? '暂停' : '播放');
         playIcon.style.display = p ? 'none' : '';
         pauseIcon.style.display = p ? '' : 'none';
         soundWave.classList.toggle('active', p);
         iconCards.classList.toggle('playing-focus', p);
         updateCardScales();
         updateLavaPlayback();
+        renderQueue();
     }
 
     audio.addEventListener('play',  () => setPlaying(true));
-    audio.addEventListener('pause', () => setPlaying(false));
-    audio.addEventListener('ended', () => { setPlaying(false); goNext(); });
-    audio.addEventListener('error', () => setPlaying(false));
-    audio.addEventListener('loadedmetadata', updateProgressUI);
+    audio.addEventListener('pause', () => { savePlaybackPosition(true); setPlaying(false); });
+    audio.addEventListener('ended', () => { clearPlaybackPosition(); setPlaying(false); goNext(); });
+    audio.addEventListener('error', () => {
+        setPlaying(false);
+        if (audio.src) setPlaybackStatus('音频加载失败，请重试', 'error');
+    });
+    audio.addEventListener('loadedmetadata', () => {
+        restorePlaybackPosition();
+        updateProgressUI();
+    });
     audio.addEventListener('durationchange', updateProgressUI);
     audio.addEventListener('timeupdate', () => {
         updateProgressUI();
         updateActiveLyric();
+        savePlaybackPosition(false);
     });
 
     // ============================================================
@@ -2626,7 +3102,7 @@
         const color = getTrackColor();
         updateTrackAccent(color);
         blobs.forEach(blob => {
-            if (gsapReady()) {
+            if (gsapReady() && !reduceMotion) {
                 gsap.to(blob, { backgroundColor: color, duration: 1.2, ease: 'power2.out' });
             } else {
                 blob.style.background = color;
@@ -2643,6 +3119,18 @@
         const w = window.innerWidth;
         const h = window.innerHeight;
         blobBaseSizes = [];
+
+        if (reduceMotion) {
+            blobs.forEach((blob, index) => {
+                const size = mobile ? 130 + index * 12 : 180 + index * 18;
+                blobBaseSizes[index] = size;
+                blob.style.width = `${size}px`;
+                blob.style.height = `${size}px`;
+                blob.style.opacity = '0.34';
+                blob.style.transform = 'translate(-50%, -50%) scale(1)';
+            });
+            return;
+        }
 
         blobs.forEach((blob, index) => {
             const size = mobile ? 120 + Math.random() * 120 : 140 + Math.random() * 220;
@@ -2784,6 +3272,10 @@
     }
 
     function startReactiveLava() {
+        if (reduceMotion) {
+            showLava();
+            return;
+        }
         stopReactiveLava();
         killLavaTweens();
         updateLavaColors();
@@ -2934,7 +3426,7 @@
     //  BUTTONS
     // ============================================================
     function setupButtonEffects() {
-        if (!gsapReady()) return;
+        if (!gsapReady() || reduceMotion) return;
 
         document.documentElement.classList.add('button-effects-ready');
         document.querySelectorAll('.btn-player').forEach(button => {
@@ -2981,11 +3473,111 @@
         });
     }
 
+    function renderQueue() {
+        if (!queueList) return;
+        queueList.innerHTML = slots.map((track, index) => `
+            <button class="queue-item${index === currentIdx ? ' active' : ''}" type="button" data-queue-index="${index}">
+                <span class="queue-index">${String(index + 1).padStart(2, '0')}</span>
+                <span class="queue-song"><strong>${esc(track.title || '未知歌曲')}</strong><span>${esc(track.artist || '未知歌手')}</span></span>
+                <span class="queue-state">${index === playingIdx && isPlaying ? '播放中' : (favoriteTrackIds.has(String(track.nid)) ? '已收藏' : '')}</span>
+            </button>
+        `).join('');
+        queueList.querySelectorAll('[data-queue-index]').forEach(button => {
+            button.addEventListener('click', () => {
+                goTo(Number(button.dataset.queueIndex));
+                closeQueue();
+            });
+        });
+    }
+
+    function toggleQueue() {
+        const open = !queuePanel?.classList.contains('open');
+        queuePanel?.classList.toggle('open', open);
+        queuePanel?.setAttribute('aria-hidden', String(!open));
+        queueToggleBtn?.classList.toggle('active', open);
+        queueToggleBtn?.setAttribute('aria-expanded', String(open));
+        if (open) renderQueue();
+    }
+
+    function closeQueue() {
+        queuePanel?.classList.remove('open');
+        queuePanel?.setAttribute('aria-hidden', 'true');
+        queueToggleBtn?.classList.remove('active');
+        queueToggleBtn?.setAttribute('aria-expanded', 'false');
+    }
+
+    function updateFavoriteButton() {
+        if (!favoriteToggleBtn) return;
+        const trackId = String(slots[currentIdx]?.nid || '');
+        const favorite = favoriteTrackIds.has(trackId);
+        favoriteToggleBtn.classList.toggle('active', favorite);
+        favoriteToggleBtn.setAttribute('aria-pressed', String(favorite));
+        favoriteToggleBtn.setAttribute('aria-label', favorite ? '取消收藏当前歌曲' : '收藏当前歌曲');
+        favoriteToggleBtn.title = favorite ? '取消收藏' : '收藏当前歌曲';
+        const icon = favoriteToggleBtn.querySelector('.utility-icon');
+        const label = favoriteToggleBtn.querySelector('.utility-label');
+        if (icon) icon.textContent = favorite ? '♥' : '♡';
+        if (label) label.textContent = favorite ? '已收藏' : '收藏';
+    }
+
+    function toggleFavorite() {
+        const track = slots[currentIdx];
+        if (!track?.nid) return;
+        const trackId = String(track.nid);
+        if (favoriteTrackIds.has(trackId)) {
+            favoriteTrackIds.delete(trackId);
+            showToast('已取消收藏');
+        } else {
+            favoriteTrackIds.add(trackId);
+            showToast('已收藏 ' + track.title);
+        }
+        localStorage.setItem(PLAYER_STORAGE.favorites, JSON.stringify([...favoriteTrackIds]));
+        updateFavoriteButton();
+        renderQueue();
+    }
+
+    function updateVolume(value) {
+        const normalized = Math.min(1, Math.max(0, Number(value) / 100));
+        audio.volume = normalized;
+        audio.muted = normalized === 0;
+        volumeRange.value = String(Math.round(normalized * 100));
+        volumeToggleBtn.setAttribute('aria-label', audio.muted ? '取消静音' : '静音');
+        volumeToggleBtn.title = audio.muted ? '取消静音' : '静音';
+        const volumeLabel = volumeToggleBtn.querySelector('.utility-label');
+        if (volumeLabel) volumeLabel.textContent = audio.muted ? '静音' : '音量';
+        volumeToggleBtn.classList.toggle('active', audio.muted);
+        localStorage.setItem('echoroom_volume', String(normalized));
+    }
+
+    const storedVolume = localStorage.getItem('echoroom_volume');
+    const savedVolume = storedVolume === null ? 0.8 : Number(storedVolume);
+    updateVolume(Number.isFinite(savedVolume) ? savedVolume * 100 : 80);
+
     setupButtonEffects();
     document.getElementById('prev').addEventListener('click', goPrev);
     document.getElementById('next').addEventListener('click', goNext);
     document.getElementById('play').addEventListener('click', togglePlay);
     document.getElementById('add-track-btn').addEventListener('click', openSearch);
+    favoriteToggleBtn?.addEventListener('click', toggleFavorite);
+    lyricsToggleBtn?.addEventListener('click', () => toggleLyricsMode());
+    queueToggleBtn?.addEventListener('click', toggleQueue);
+    volumeRange?.addEventListener('input', event => updateVolume(event.target.value));
+    volumeToggleBtn?.addEventListener('click', () => {
+        if (audio.muted || audio.volume === 0) updateVolume(Number(localStorage.getItem('echoroom_last_volume')) * 100 || 80);
+        else {
+            localStorage.setItem('echoroom_last_volume', String(audio.volume));
+            updateVolume(0);
+        }
+    });
+    window.addEventListener('beforeunload', () => {
+        savePlaybackPosition(true);
+        persistPlayerState();
+    });
+    document.addEventListener('click', event => {
+        if (!queuePanel?.classList.contains('open')) return;
+        if (queuePanel.contains(event.target) || queueToggleBtn?.contains(event.target)) return;
+        closeQueue();
+    });
 
     // ============================================================
     //  KEYBOARD
@@ -2996,7 +3588,7 @@
             case 'ArrowLeft':  e.preventDefault(); goPrev(); break;
             case 'ArrowRight': e.preventDefault(); goNext(); break;
             case ' ':          e.preventDefault(); togglePlay(); break;
-            case 'Escape':     closePopup(); closeSearch(); closeNcmLogin(); toggleLyricsMode(false); break;
+            case 'Escape':     closePopup(); closeSearch(); closeNcmLogin(); closeQueue(); toggleLyricsMode(false); break;
         }
     });
 
@@ -3020,6 +3612,10 @@
     //  UTIL
     // ============================================================
     function isMobile() { return window.matchMedia('(max-width: 600px)').matches; }
+    function updateDragHint() {
+        if (!dragHint) return;
+        dragHint.textContent = isMobile() ? '↑ 上下滑动切歌 ↓' : '← 左右滑动切歌 →';
+    }
     let lastMobile = isMobile();
     window.addEventListener('resize', () => {
         const nowMobile = isMobile();
@@ -3028,12 +3624,17 @@
             renderCards();
             updateContentTransform();
         }
+        updateDragHint();
         updateTrackTitleFade();
     });
 
     document.getElementById('ncm-login-btn')?.addEventListener('click', openNcmLogin);
     document.getElementById('ncm-login-refresh')?.addEventListener('click', startNcmQrLogin);
     document.getElementById('ncm-login-cancel')?.addEventListener('click', closeNcmLogin);
+    document.getElementById('ncm-advanced-login')?.addEventListener('click', () => {
+        closeNcmLogin();
+        openVipModal();
+    });
     document.getElementById('ncm-account-close')?.addEventListener('click', closeNcmLogin);
     document.getElementById('ncm-logout-btn')?.addEventListener('click', logoutNcm);
     document.getElementById('ncm-login-overlay')?.addEventListener('click', (e) => {

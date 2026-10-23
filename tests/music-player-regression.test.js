@@ -171,16 +171,16 @@ assert(
   'mobile EchoRoom heading should sit below the top control row instead of under the login button'
 );
 assert(
-  /@media\s*\(max-width:\s*600px\)[\s\S]*#track-title\s*\{[\s\S]*left\s*:\s*50%[\s\S]*transform\s*:\s*translateX\(-50%\)[\s\S]*text-align\s*:\s*center[\s\S]*box-sizing\s*:\s*border-box[\s\S]*\}/.test(html),
-  'mobile track title should be centered above the controls with stable width and box sizing'
+  /@media\s*\(max-width:\s*600px\)[\s\S]*\.track-meta\s*\{[\s\S]*left\s*:\s*50%[\s\S]*transform\s*:\s*translateX\(-50%\)[\s\S]*width\s*:\s*min\(94vw,\s*620px\)[\s\S]*\}/.test(html),
+  'mobile track metadata should be centered above the controls with a stable width'
 );
 assert(
-  /@media\s*\(max-width:\s*600px\)[\s\S]*#track-title\s*\{[\s\S]*bottom\s*:\s*126px[\s\S]*left\s*:\s*50%/.test(html),
-  'mobile track title should be lifted into the blank space above the existing control area without moving the controls'
+  /@media\s*\(max-width:\s*600px\)[\s\S]*\.track-meta\s*\{[\s\S]*bottom\s*:\s*118px[\s\S]*left\s*:\s*50%/.test(html),
+  'mobile track metadata should be lifted above the player tools'
 );
 assert(
-  /@media\s*\(max-width:\s*600px\)[\s\S]*body\.lyrics-mode\s+#track-title\s*\{[\s\S]*left\s*:\s*50%[\s\S]*transform\s*:\s*translateX\(-50%\)[\s\S]*\}/.test(html),
-  'mobile lyrics-mode track title should keep the same centered alignment'
+  /@media\s*\(max-width:\s*600px\)[\s\S]*body\.lyrics-mode\s+\.track-meta\s*\{[\s\S]*left\s*:\s*50%[\s\S]*transform\s*:\s*translateX\(-50%\)[\s\S]*\}/.test(html),
+  'mobile lyrics-mode track metadata should keep the same centered alignment'
 );
 assert(
   /@media\s*\(max-width:\s*600px\)[\s\S]*body\.lyrics-mode\s+\.drag-hint\s*\{[\s\S]*display\s*:\s*none[\s\S]*\}/.test(html),
@@ -396,6 +396,10 @@ assert(
 );
 
 const loadLyricsForCurrent = extractFunction('loadLyricsForCurrent');
+const renderLyrics = extractFunction('renderLyrics');
+const updateActiveLyric = extractFunction('updateActiveLyric');
+const markLyricsManualScroll = extractFunction('markLyricsManualScroll');
+const seekToLyric = extractFunction('seekToLyric');
 assert(
   /fetch\(\s*`\/api\/track\/lyric\?id=\$\{track\.nid\}`\s*,\s*\{[^}]*credentials\s*:\s*['"]include['"][^}]*\}/s.test(loadLyricsForCurrent),
   'loadLyricsForCurrent should use /api/track/lyric with credentials include'
@@ -404,10 +408,63 @@ assert(
   !/apiFetch\(\s*`\/lyric/.test(loadLyricsForCurrent),
   'loadLyricsForCurrent should no longer call apiFetch(`/lyric`)'
 );
+assert(
+  /lyricsState\s*=\s*['"]loading['"]/.test(loadLyricsForCurrent) &&
+  /lyricsState\s*=\s*lyricRows\.length\s*\?\s*['"]ready['"]\s*:\s*['"]empty['"]/.test(loadLyricsForCurrent) &&
+  /lyricsState\s*=\s*['"]error['"]/.test(loadLyricsForCurrent),
+  'lyrics loading should expose real loading, empty, and error states'
+);
+assert(
+  /const\s+requestSeq\s*=\s*\+\+lyricsRequestSeq/.test(loadLyricsForCurrent) &&
+  /requestSeq\s*!==\s*lyricsRequestSeq/.test(loadLyricsForCurrent),
+  'lyrics loading should ignore stale responses after a rapid track change'
+);
+const parseLrc = extractFunction('parseLrc');
+assert(
+  /录音\(\?:师\|室\)\?/.test(parseLrc) && /母带\(\?:制作\|工程师\|后期处理录音室\)\?/.test(parseLrc),
+  'lyric parsing should filter production credits such as recording and mastering metadata'
+);
+assert(
+  !/fallbackLyrics/.test(html) && /暂无歌词/.test(renderLyrics) && /重新加载/.test(renderLyrics),
+  'lyrics should not fabricate fallback text and should provide empty and retry states'
+);
+assert(
+  !/renderLyrics\(\)/.test(updateActiveLyric) &&
+  /classList\.remove\(['"]active['"]\)/.test(updateActiveLyric) &&
+  /classList\.add\(['"]active['"]\)/.test(updateActiveLyric),
+  'active lyric changes should update existing rows without rebuilding the scroll container'
+);
+assert(
+  /lyricsFollowPaused\s*=\s*true/.test(markLyricsManualScroll) &&
+  /lyricsFollowBtn\?\.classList\.add\(['"]show['"]\)/.test(markLyricsManualScroll),
+  'manual lyric browsing should pause automatic follow until the user explicitly resumes it'
+);
+assert(
+  /audio\.currentTime\s*=\s*Math\.max\(0,\s*row\.time\)/.test(seekToLyric) &&
+  /data-lyric-index/.test(renderLyrics),
+  'each lyric row should seek playback to its timestamp'
+);
+assert(
+  /id=["']lyrics-toggle-btn["']/.test(html) &&
+  /id=["']volume-range["']/.test(html) &&
+  /id=["']queue-toggle-btn["']/.test(html),
+  'the primary player controls should expose lyrics, volume, and queue tools'
+);
+assert(
+  /@media\s*\(prefers-reduced-motion:\s*reduce\)/.test(html),
+  'the player should honor reduced-motion preferences'
+);
+assert(
+  /<h2\s+id=["']track-title["']>[^<]+<\/h2>[\s\S]*<p\s+id=["']track-artist["']>/.test(html) &&
+  /trackTitle\.textContent\s*=\s*t\.title/.test(updateTrackInfo) &&
+  /trackArtist\.textContent\s*=\s*t\.artist/.test(updateTrackInfo),
+  'song title and artist should have separate visual hierarchy and update independently'
+);
 
 const loadAndPlay = extractFunction('loadAndPlay');
 const goTo = extractFunction('goTo');
 const restoreDisplayedTrack = extractFunction('restoreDisplayedTrack');
+const moveCarouselTo = extractFunction('moveCarouselTo');
 assert(
   /let\s+playingIdx\s*=\s*null/.test(html) &&
   /let\s+playRequestSeq\s*=\s*0/.test(html),
@@ -425,9 +482,22 @@ assert(
   'goTo should restore the current playing song page when the requested song cannot play'
 );
 assert(
-  /currentIdx\s*=\s*\(\(index\s*%\s*6\)\s*\+\s*6\)\s*%\s*6/.test(restoreDisplayedTrack) &&
+  /moveCarouselTo\(index\)/.test(restoreDisplayedTrack) &&
   /renderCurrentTrackState\(\)/.test(restoreDisplayedTrack),
-  'restoreDisplayedTrack should normalize the slot index and rerender the current song state'
+  'restoreDisplayedTrack should restore the continuous carousel position and rerender the current song state'
+);
+assert(
+  /let\s+carouselPosition\s*=\s*0/.test(html) &&
+  /delta\s*>\s*total\s*\/\s*2/.test(moveCarouselTo) &&
+  /delta\s*<\s*-total\s*\/\s*2/.test(moveCarouselTo) &&
+  /carouselPosition\s*\+=\s*delta/.test(moveCarouselTo),
+  'carousel navigation should use the shortest continuous rotation across the first and last slots'
+);
+assert(
+  /sameTrack\s*&&\s*playingIdx\s*===\s*currentIdx/.test(goTo) &&
+  /if\s*\(audio\.paused\)/.test(goTo) &&
+  /await\s+audio\.play\(\)/.test(goTo),
+  'selecting the current queue item should resume its audio instead of doing nothing'
 );
 assert(
   /let\s+urlEndpoint\s*=\s*`\/api\/track\/url\?id=\$\{track\.nid\}&level=\$\{level\}&realIP=\$\{NCM_REAL_IP\}`/.test(loadAndPlay) &&
@@ -463,8 +533,8 @@ assert(
   'loadAndPlay should continue on malformed, non-ok, and no-url responses'
 );
 assert(
-  /if\s*\(\s*networkFailures\s*===\s*qualityLevels\.length\s*\)\s*\{[\s\S]*showToast\(['"]缃戠粶閿欒['"]\)/.test(loadAndPlay),
-  'loadAndPlay should show the network error toast only when every level failed due to fetch errors'
+  /if\s*\(\s*networkFailures\s*===\s*qualityLevels\.length\s*\)\s*\{[\s\S]*setPlaybackStatus\(['"]网络连接失败，请稍后重试['"],\s*['"]error['"]\)[\s\S]*showToast\(['"]网络连接失败['"]\)/.test(loadAndPlay),
+  'loadAndPlay should expose a readable network error only when every level failed due to fetch errors'
 );
 
 assert(
@@ -609,6 +679,7 @@ assert(
 
 const handleCardTap = extractFunction('handleCardTap');
 const bindCardClicks = extractFunction('bindCardClicks');
+const onDragMove = extractFunction('onDragMove');
 const onDragEnd = extractFunction('onDragEnd');
 assert(
   /const\s+idx\s*=\s*parseInt\(card\.dataset\.index,\s*10\)/.test(handleCardTap) &&
@@ -624,6 +695,45 @@ assert(
   /e\?\.type\s*===\s*['"]touchend['"]/.test(onDragEnd) &&
   /handleCardTap\(tappedCard\)/.test(onDragEnd),
   'mobile touch tap on a cover should delegate to handleCardTap instead of checking a missing active class'
+);
+assert(
+  /distancePerTrack/.test(onDragMove) &&
+  /Math\.max\(-1\.08,\s*Math\.min\(1\.08/.test(onDragMove) &&
+  /velocity\s*>=\s*0\.45/.test(onDragEnd) &&
+  /threshold\s*=\s*isMobile\(\)\s*\?\s*42\s*:\s*55/.test(onDragEnd),
+  'carousel gestures should stay one-track-at-a-time while accepting short fast swipes'
+);
+assert(
+  /playingIdx\s*!==\s*currentIdx/.test(seekToLyric) && /先播放当前歌曲再跳转歌词/.test(seekToLyric),
+  'lyrics should not seek a stale audio source from another displayed track'
+);
+
+const init = extractFunction('init');
+const showLava = extractFunction('showLava');
+assert(
+  /renderPlayerShell\(\)[\s\S]*await\s+Promise\.allSettled/.test(init),
+  'the player shell should render before remote metadata requests finish'
+);
+assert(
+  /if\s*\(reduceMotion\)/.test(showLava) && /return/.test(showLava),
+  'reduced-motion mode should avoid starting endless lava tweens'
+);
+assert(
+  /const\s+storedVolume\s*=\s*localStorage\.getItem\(['"]echoroom_volume['"]\)/.test(html) &&
+  /storedVolume\s*===\s*null\s*\?\s*0\.8/.test(html),
+  'a first visit should default to 80 percent volume instead of treating a missing value as zero'
+);
+assert(
+  /id=["']favorite-toggle-btn["']/.test(html) &&
+  /PLAYER_STORAGE\.favorites/.test(html) &&
+  /PLAYER_STORAGE\.positions/.test(html) &&
+  /PLAYER_STORAGE\.slots/.test(html),
+  'favorites, playback position, and the six-slot order should persist locally'
+);
+assert(
+  /@media\s*\(max-width:\s*600px\)[\s\S]*\.utility-label\s*\{[\s\S]*display\s*:\s*none/.test(html) &&
+  /↑ 上下滑动切歌 ↓/.test(html),
+  'mobile tools should use compact labels and describe the vertical swipe direction'
 );
 
 const closeNcmLogin = extractFunction('closeNcmLogin');
